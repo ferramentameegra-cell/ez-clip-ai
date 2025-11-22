@@ -232,8 +232,8 @@ app.use(express.static(distPath));
 
 // Catch-all: servir index.html para rotas do frontend (SPA)
 // IMPORTANTE: Deve vir POR ÚLTIMO, depois de todas as rotas de API
-// Express 5 não aceita '*', usar middleware sem padrão
-app.use((req, res, next) => {
+// Express 5 não aceita '*', usar middleware sem caminho para catch-all
+app.use((_req, res) => {
   // Se a requisição não foi tratada por nenhuma rota anterior (API)
   // e não é um arquivo estático, servir index.html (SPA routing)
   const indexPath = path.join(distPath, 'index.html');
