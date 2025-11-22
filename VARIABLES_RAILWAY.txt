@@ -1,0 +1,46 @@
+# Variáveis de Ambiente para o Railway
+# Copie e cole essas variáveis no Railway → Variables
+
+# ==========================================
+# OBRIGATÓRIAS (Precisa ter todas)
+# ==========================================
+
+JWT_SECRET=minhasenhasupersecreta123456789abcdefghijklmnop
+NODE_ENV=production
+PORT=3001
+
+# ==========================================
+# APIs Externas (Opcional - Deixe vazio se não tiver)
+# ==========================================
+
+# Manus Forge API (Para transcrição)
+BUILT_IN_FORGE_API_KEY=
+BUILT_IN_FORGE_API_URL=https://api.manus.im
+
+# AWS S3 (Para armazenar vídeos)
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=ez-clip-ai
+
+# Stripe (Para pagamentos)
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+VITE_STRIPE_PUBLISHABLE_KEY=
+
+# ==========================================
+# Frontend URLs (Preencha após gerar domínio)
+# ==========================================
+
+# Após gerar domínio no Railway, atualize:
+# FRONTEND_URL=https://seu-dominio.railway.app
+# VITE_TRPC_URL=https://seu-dominio.railway.app/trpc
+
+# ==========================================
+# Automáticas (Railway cria automaticamente)
+# ==========================================
+
+# DATABASE_URL - Criado automaticamente pelo MySQL
+# REDIS_URL - Criado automaticamente pelo Redis
+# Não precisa adicionar manualmente!
+
