@@ -140,30 +140,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Servir arquivos estáticos do frontend (APÓS todas as rotas de API)
-// Importante: deve vir ANTES do catch-all para não interceptar rotas de API
-const distPath = path.resolve(__dirname, '../client/dist');
-app.use(express.static(distPath));
-
-// Catch-all: servir index.html para rotas do frontend (SPA)
-// Mas NÃO interceptar rotas de API (/trpc, /api, /health)
-app.get('*', (req, res, next) => {
-  // Se já foi tratado por uma rota anterior (API), não fazer nada
-  if (req.path.startsWith('/trpc') || req.path.startsWith('/api') || req.path === '/health') {
-    return next();
-  }
-  
-  // Servir index.html para todas as outras rotas (SPA)
-  const indexPath = path.join(distPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      // Se arquivo não existe, pode ser que ainda não foi feito build
-      console.warn(`[Static] Arquivo não encontrado: ${indexPath}`);
-      res.status(404).json({ error: 'Frontend not built yet. Run npm run build first.' });
-    }
-  });
-});
-
 // Endpoint para obter informações do vídeo do YouTube
 app.get('/api/youtube/info', async (req, res) => {
   try {
@@ -248,6 +224,22 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
   }
 
   res.json({ received: true });
+});
+
+// Servir arquivos estáticos do frontend (DEPOIS de todas as rotas de API)
+const distPath = path.resolve(__dirname, '../client/dist');
+app.use(express.static(distPath));
+
+// Catch-all: servir index.html para rotas do frontend (SPA)
+// IMPORTANTE: Deve vir POR ÚLTIMO, depois de todas as rotas de API
+app.get('*', (_req, res) => {
+  const indexPath = path.join(distPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.warn(`[Static] Arquivo não encontrado: ${indexPath}`);
+      res.status(404).json({ error: 'Frontend not built yet. Run npm run build first.' });
+    }
+  });
 });
 
 // Iniciar scheduler para publicações agendadas
