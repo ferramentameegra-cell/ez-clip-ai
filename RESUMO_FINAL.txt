@@ -1,0 +1,55 @@
+╔══════════════════════════════════════════════════════════════╗
+║          🚀 CONFIGURAÇÃO DO BANCO DE DADOS                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+📋 STATUS ATUAL:
+   ✅ Node.js instalado (v22.20.0)
+   ✅ Arquivo .env criado
+   ✅ Scripts configurados
+   ❌ MySQL NÃO instalado
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 PRÓXIMOS PASSOS:
+
+1️⃣  INSTALAR MYSQL (escolha uma opção):
+
+   Opção A: Homebrew (Recomendado)
+   ────────────────────────────────
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+   eval "$(/opt/homebrew/bin/brew shellenv)"
+   brew install mysql
+   brew services start mysql
+   mysql -u root -e "CREATE DATABASE viral_clips_ai;"
+
+   Opção B: Download Manual
+   ────────────────────────
+   Baixe: https://dev.mysql.com/downloads/mysql/
+   Instale e anote a senha do root
+
+2️⃣  APLICAR MIGRATIONS:
+   npm run db:push
+
+3️⃣  VERIFICAR:
+   npm run db:studio
+
+4️⃣  REINICIAR BACKEND:
+   npm run dev:server
+
+5️⃣  ACESSAR SITE:
+   http://localhost:3000
+
+6️⃣  CRIAR CONTA:
+   - Clique em "Criar conta"
+   - Preencha o formulário
+   - Receba 3 créditos grátis!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DOCUMENTAÇÃO:
+   - COMANDOS_COPIAR_COLAR.md (comandos completos)
+   - INICIO_RAPIDO_COMPLETO.md (guia passo a passo)
+   - EXECUTAR_AGORA.md (instruções detalhadas)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
