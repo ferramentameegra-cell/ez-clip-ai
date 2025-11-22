@@ -13,19 +13,23 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
     },
   }));
 
-  const [trpcClient] = useState(() =>
-    trpc.createClient({
+  const [trpcClient] = useState(() => {
+    // Usar variável de ambiente no build, ou fallback para URL relativa/produção
+    const trpcUrl = import.meta.env.VITE_TRPC_URL || 
+                    (import.meta.env.PROD ? window.location.origin + '/trpc' : 'http://localhost:3001/trpc');
+    
+    return trpc.createClient({
       links: [
         httpBatchLink({
-          url: 'http://localhost:3001/trpc',
+          url: trpcUrl,
           headers: () => {
             const token = localStorage.getItem('token');
             return token ? { authorization: `Bearer ${token}` } : {};
           },
         }),
       ],
-    })
-  );
+    });
+  });
 
   return (
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
