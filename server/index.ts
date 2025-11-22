@@ -232,7 +232,10 @@ app.use(express.static(distPath));
 
 // Catch-all: servir index.html para rotas do frontend (SPA)
 // IMPORTANTE: Deve vir POR ÚLTIMO, depois de todas as rotas de API
-app.get('*', (_req, res) => {
+// Express 5 não aceita '*', usar middleware sem padrão
+app.use((req, res, next) => {
+  // Se a requisição não foi tratada por nenhuma rota anterior (API)
+  // e não é um arquivo estático, servir index.html (SPA routing)
   const indexPath = path.join(distPath, 'index.html');
   res.sendFile(indexPath, (err) => {
     if (err) {
