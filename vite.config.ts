@@ -23,9 +23,5 @@ export default defineConfig({
   optimizeDeps: {
     exclude: [],
   },
-  // Definir variáveis de ambiente do Vite
-  define: {
-    'import.meta.env.VITE_TRPC_URL': JSON.stringify(process.env.VITE_TRPC_URL || ''),
-  },
 });
 
