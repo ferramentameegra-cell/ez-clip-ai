@@ -12,6 +12,10 @@ export const users = mysqlTable('users', {
   acceptedTerms: boolean('accepted_terms').default(false),
   acceptedTermsAt: timestamp('accepted_terms_at'),
   language: mysqlEnum('language', ['pt-BR', 'es', 'en']).default('pt-BR'),
+  // Onboarding
+  onboardingUseCase: text('onboarding_use_case'), // Para que você usará o site?
+  onboardingNiche: varchar('onboarding_niche', { length: 255 }), // Qual é o seu nicho?
+  onboardingAt: timestamp('onboarding_at'), // Quando completou o onboarding
   // Perfil
   avatarUrl: text('avatar_url'), // URL da foto de perfil
   bio: text('bio'), // Biografia do usuário

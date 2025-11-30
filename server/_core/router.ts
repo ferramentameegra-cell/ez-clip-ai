@@ -5,6 +5,8 @@ import { scheduleRouter } from '../routers/schedule';
 import { authRouter } from '../routers/auth';
 import { paymentRouter } from '../routers/payment';
 import { oauthRouter } from '../routers/oauth';
+import { onboardingRouter } from '../routers/onboarding';
+import { adminRouter } from '../routers/admin';
 import { startScheduler } from '../scheduler';
 
 // Iniciar scheduler ao carregar o módulo
@@ -17,6 +19,8 @@ export const appRouter = router({
   schedule: scheduleRouter,
   payment: paymentRouter,
   oauth: oauthRouter,
+  onboarding: onboardingRouter,
+  admin: adminRouter,
 });
 
 export type AppRouter = typeof appRouter;

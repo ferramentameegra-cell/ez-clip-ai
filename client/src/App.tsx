@@ -9,28 +9,94 @@ import { Settings } from '@/pages/Settings';
 import { Education } from '@/pages/Education';
 import { TermsOfUse } from '@/pages/TermsOfUse';
 import { Billing } from '@/pages/Billing';
+import { Onboarding } from '@/pages/Onboarding';
+import { AdminDashboard } from '@/pages/admin/Dashboard';
+import { AdminUsers } from '@/pages/admin/Users';
+import { AdminJobs } from '@/pages/admin/Jobs';
 import { TRPCProvider } from '@/lib/trpc-client.tsx';
 import { Toaster } from 'sonner';
 import { Header } from '@/components/Header';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 function AppContent() {
   const [location] = useLocation();
-  const showHeader = location !== '/login';
+  const showHeader = !['/login', '/onboarding'].includes(location);
 
   return (
     <div className="min-h-screen bg-white">
       {showHeader && <Header />}
         <Switch>
-          <Route path="/" component={Home} />
           <Route path="/login" component={Login} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/education" component={Education} />
-          <Route path="/my-retention-videos" component={MyRetentionVideos} />
-          <Route path="/jobs/:id" component={JobDetail} />
-          <Route path="/jobs" component={JobsList} />
-          <Route path="/terms" component={TermsOfUse} />
-          <Route path="/billing" component={Billing} />
+          <Route path="/onboarding">
+            <ProtectedRoute requireOnboarding={false}>
+              <Onboarding />
+            </ProtectedRoute>
+          </Route>
+          
+          {/* Rotas protegidas que requerem onboarding */}
+          <Route path="/">
+            <ProtectedRoute requireOnboarding={true}>
+              <Home />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/profile">
+            <ProtectedRoute requireOnboarding={true}>
+              <Profile />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/settings">
+            <ProtectedRoute requireOnboarding={true}>
+              <Settings />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/education">
+            <ProtectedRoute requireOnboarding={true}>
+              <Education />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/my-retention-videos">
+            <ProtectedRoute requireOnboarding={true}>
+              <MyRetentionVideos />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/jobs/:id">
+            <ProtectedRoute requireOnboarding={true}>
+              <JobDetail />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/jobs">
+            <ProtectedRoute requireOnboarding={true}>
+              <JobsList />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/terms">
+            <ProtectedRoute requireOnboarding={true}>
+              <TermsOfUse />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/billing">
+            <ProtectedRoute requireOnboarding={true}>
+              <Billing />
+            </ProtectedRoute>
+          </Route>
+
+          {/* Rotas admin */}
+          <Route path="/admin/users">
+            <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
+              <AdminUsers />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin/jobs">
+            <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
+              <AdminJobs />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/admin">
+            <ProtectedRoute requireOnboarding={true} requireAdmin={true}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          </Route>
+
         <Route>
           <div className="container mx-auto py-16 px-4 text-center">
             <h1 className="text-2xl font-bold mb-4">404 - Página não encontrada</h1>

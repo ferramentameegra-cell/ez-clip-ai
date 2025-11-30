@@ -13,8 +13,10 @@ import {
   Menu,
   X,
   Home,
+  Shield,
 } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
+import { trpc } from '@/lib/trpc';
 
 export function Header() {
   const [location, setLocation] = useLocation();
@@ -23,6 +25,14 @@ export function Header() {
   const [user, setUser] = useState<any>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Buscar perfil para verificar role
+  const { data: profile } = trpc.auth.getProfile.useQuery(undefined, {
+    enabled: isLoggedIn,
+    retry: false,
+  });
+
+  const isAdmin = profile?.role === 'admin' || user?.role === 'admin';
 
   // Verificar se usuário está logado
   useEffect(() => {
@@ -188,6 +198,17 @@ export function Header() {
                             <Settings className="h-4 w-4" />
                             {t('settings.title')}
                           </Link>
+                          
+                          {isAdmin && (
+                            <Link
+                              to="/admin"
+                              onClick={() => setShowDropdown(false)}
+                              className="flex items-center gap-3 px-4 py-2 text-sm text-purple-700 hover:bg-purple-50"
+                            >
+                              <Shield className="h-4 w-4" />
+                              Admin
+                            </Link>
+                          )}
                           
                           <div className="border-t my-1" />
                           

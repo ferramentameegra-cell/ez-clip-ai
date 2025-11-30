@@ -11,7 +11,8 @@
     "start": "tsx server/index.ts",
     "start:server": "tsx server/index.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test:openai": "tsx server/test-openai-integration.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.1",

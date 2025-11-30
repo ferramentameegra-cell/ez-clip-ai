@@ -74,6 +74,9 @@ export const authRouter = router({
         instagramUsername: user.instagramUsername,
         youtubeChannelId: user.youtubeChannelId,
         youtubeShortsEnabled: user.youtubeShortsEnabled,
+        onboardingAt: user.onboardingAt,
+        onboardingUseCase: user.onboardingUseCase,
+        onboardingNiche: user.onboardingNiche,
       };
     }),
 
