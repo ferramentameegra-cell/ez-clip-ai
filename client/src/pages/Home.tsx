@@ -3,7 +3,7 @@ import * as React from "react";
 import { Link } from "wouter";
 import { 
   Sparkles, Scissors, Zap, Target, Youtube, Clock, 
-  CheckCircle, Info, Layers, Type, ArrowRight, Rocket, Loader2
+  CheckCircle, Info, Layers, Type, ArrowRight, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -195,30 +195,59 @@ export function Home() {
     });
   };
 
+  // Verificar se usuário está logado
+  const isAuthenticated = React.useMemo(() => {
+    const user = localStorage.getItem('user');
+    return !!user;
+  }, []);
+
+  const getLoginUrl = () => '/login?redirect=create-job';
+
   return (
     <div className="min-h-screen bg-white">
-      {/* SEÇÃO 1: HERO */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-blue-600 to-purple-700 py-12 md:py-20 px-4">
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
-        <div className="relative max-w-4xl mx-auto text-center text-white space-y-6">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-            {t('home.title')}
+      {/* SEÇÃO 1: HERO - REESCRITO COM NARRATIVA PERSUASIVA */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-500 to-blue-500 py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Título Principal */}
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
+            {t('hero.title')}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-purple-100 max-w-3xl mx-auto">
-            {t('home.subtitle')}
+
+          {/* Subtítulo */}
+          <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
+            {t('hero.subtitle')}
           </p>
-          <div className="flex flex-wrap justify-center gap-4 pt-4">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-              <Sparkles className="h-5 w-5 text-yellow-300" />
-              <span className="text-sm font-medium">{t('home.badge1')}</span>
+
+          {/* Badges de Benefícios */}
+          <div className="flex flex-wrap justify-center gap-4 mb-12">
+            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white flex items-center gap-2">
+              <span>{t('hero.badge1')}</span>
             </div>
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
-              <Rocket className="h-5 w-5 text-yellow-300" />
-              <span className="text-sm font-medium">{t('home.badge2')}</span>
+            <div className="bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-white flex items-center gap-2">
+              <span>{t('hero.badge2')}</span>
             </div>
           </div>
+
+          {/* CTA Principal */}
+          <button 
+            onClick={() => {
+              if (!isAuthenticated) {
+                window.location.href = getLoginUrl();
+              } else {
+                document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="bg-white text-purple-600 font-bold py-4 px-8 rounded-lg hover:bg-gray-100 transition-all text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            {isAuthenticated ? t('hero.ctaAuthenticated') : t('hero.ctaNotAuthenticated')}
+          </button>
+
+          {/* Texto de Suporte */}
+          <p className="text-white/70 mt-6 text-sm">
+            {t('hero.freeTrial')}
+          </p>
         </div>
-      </div>
+      </section>
 
       {/* SEÇÃO 2: COMO FUNCIONA */}
       <div className="py-8 md:py-16 px-4 bg-muted/30">
@@ -232,9 +261,9 @@ export function Home() {
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform">
                   <Scissors className="h-6 w-6 md:h-8 md:w-8 text-white" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Cortes Sequenciais</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">{t('features.sequentialCuts')}</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Divide o vídeo em partes cronológicas de 1 minuto cada
+                  {t('features.sequentialCutsDesc')}
                 </p>
               </div>
             </div>
@@ -246,9 +275,9 @@ export function Home() {
                 <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                   <Sparkles className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-bold mb-3">Legendas Virais</h3>
+                <h3 className="text-xl font-bold mb-3">{t('features.viralSubtitles')}</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Legendas automáticas estilizadas no estilo TikTok
+                  {t('features.viralSubtitlesDesc')}
                 </p>
               </div>
             </div>
@@ -260,9 +289,9 @@ export function Home() {
                 <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center mb-4 md:mb-6 group-hover:scale-110 transition-transform">
                   <Zap className="h-6 w-6 md:h-8 md:w-8 text-white" />
                 </div>
-                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">Fundos de Retenção</h3>
+                <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3">{t('features.retentionVideos')}</h3>
                 <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-                  Adiciona vídeos satisfatórios para aumentar retenção
+                  {t('features.retentionVideosDesc')}
                 </p>
               </div>
             </div>
@@ -270,8 +299,96 @@ export function Home() {
         </div>
       </div>
 
+      {/* SEÇÃO 2.5: SOCIAL PROOF */}
+      <section className="bg-gray-50 py-16 px-4 mt-16">
+        <div className="max-w-6xl mx-auto">
+          {/* Título */}
+          <h2 className="text-4xl font-bold text-center mb-4">
+            {t('socialProof.title')}
+          </h2>
+          <p className="text-center text-gray-600 mb-12 text-lg">
+            {t('socialProof.subtitle')}
+          </p>
+
+          {/* Números */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-4xl font-bold text-purple-600 mb-2">1.000+</div>
+              <p className="text-gray-600">{t('socialProof.usersActive')}</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-4xl font-bold text-purple-600 mb-2">50.000+</div>
+              <p className="text-gray-600">{t('socialProof.clipsGenerated')}</p>
+            </div>
+            <div className="bg-white p-8 rounded-lg shadow-md text-center">
+              <div className="text-4xl font-bold text-purple-600 mb-2">100x</div>
+              <p className="text-gray-600">{t('socialProof.viewsIncrease')}</p>
+            </div>
+          </div>
+
+          {/* Depoimentos */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-200 rounded-full mr-4"></div>
+                <div>
+                  <p className="font-bold">{t('socialProof.testimonial1.name')}</p>
+                  <p className="text-sm text-gray-600">{t('socialProof.testimonial1.role')}</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-4">
+                "{t('socialProof.testimonial1.text')}"
+              </p>
+              <div className="flex text-yellow-400">★★★★★</div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-200 rounded-full mr-4"></div>
+                <div>
+                  <p className="font-bold">{t('socialProof.testimonial2.name')}</p>
+                  <p className="text-sm text-gray-600">{t('socialProof.testimonial2.role')}</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-4">
+                "{t('socialProof.testimonial2.text')}"
+              </p>
+              <div className="flex text-yellow-400">★★★★★</div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-200 rounded-full mr-4"></div>
+                <div>
+                  <p className="font-bold">{t('socialProof.testimonial3.name')}</p>
+                  <p className="text-sm text-gray-600">{t('socialProof.testimonial3.role')}</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-4">
+                "{t('socialProof.testimonial3.text')}"
+              </p>
+              <div className="flex text-yellow-400">★★★★★</div>
+            </div>
+
+            <div className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-purple-200 rounded-full mr-4"></div>
+                <div>
+                  <p className="font-bold">{t('socialProof.testimonial4.name')}</p>
+                  <p className="text-sm text-gray-600">{t('socialProof.testimonial4.role')}</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mb-4">
+                "{t('socialProof.testimonial4.text')}"
+              </p>
+              <div className="flex text-yellow-400">★★★★★</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SEÇÃO 3: FORMULÁRIO */}
-      <div className="py-8 md:py-16 px-4">
+      <div className="py-8 md:py-16 px-4" id="form-section">
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-2xl md:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-4 md:p-8 text-white">
@@ -482,6 +599,7 @@ export function Home() {
                   <Layers className="h-5 w-5 text-purple-600" />
                   {t('home.secondaryContent')}
                 </Label>
+                <p className="text-sm text-muted-foreground mb-3">{t('home.secondaryContentDesc')}</p>
                 <RadioGroup 
                   value={secondaryType} 
                   onValueChange={(value) => {
@@ -502,7 +620,7 @@ export function Home() {
                     <Label htmlFor="platform" className="flex-1 cursor-pointer font-medium">
                       {t('home.platformVideos')}
                     </Label>
-                    <Badge variant="outline">Popular</Badge>
+                    <Badge variant="outline">{t('home.platformVideosLabel')}</Badge>
                   </div>
                   <div className="flex items-center space-x-3 p-4 border-2 rounded-xl hover:border-purple-300 hover:bg-purple-50/50 transition-all cursor-pointer">
                     <RadioGroupItem value="user" id="user" className="h-5 w-5" />
@@ -515,7 +633,7 @@ export function Home() {
                     <Label htmlFor="emoji" className="flex-1 cursor-pointer font-medium">
                       {t('home.emoji3D')}
                     </Label>
-                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Novo</Badge>
+                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">{t('home.emoji3DLabel')}</Badge>
                   </div>
                 </RadioGroup>
               </div>
@@ -599,6 +717,247 @@ export function Home() {
           </div>
         </div>
       </div>
+
+      {/* SEÇÃO 3.5: PRICING */}
+      <section className="py-16 px-4 bg-white" id="pricing">
+        <div className="max-w-6xl mx-auto">
+          {/* Título */}
+          <h2 className="text-4xl font-bold text-center mb-4">
+            {t('pricing.title')}
+          </h2>
+          <p className="text-center text-gray-600 mb-12 text-lg">
+            {t('pricing.subtitle')}
+          </p>
+
+          {/* Cards de Planos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Plano Gratuito */}
+            <div className="border-2 border-gray-200 rounded-lg p-8 hover:border-purple-300 transition-all">
+              <h3 className="text-2xl font-bold mb-2">{t('pricing.planFree.name')}</h3>
+              <p className="text-gray-600 mb-6">{t('pricing.planFree.description')}</p>
+              
+              <div className="text-4xl font-bold text-purple-600 mb-6">
+                {t('pricing.planFree.price')}<span className="text-lg text-gray-600">{t('pricing.planFree.period')}</span>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planFree.feature1')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planFree.feature2')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planFree.feature3')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-gray-400 mr-3">✗</span>
+                  <span className="text-gray-400">Vídeos de retenção</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-gray-400 mr-3">✗</span>
+                  <span className="text-gray-400">Publicação automática</span>
+                </li>
+              </ul>
+
+              <button 
+                onClick={() => !isAuthenticated ? setLocation('/login') : document.getElementById('form-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="w-full border-2 border-purple-600 text-purple-600 font-bold py-3 rounded-lg hover:bg-purple-50 transition-all"
+              >
+                {t('pricing.planFree.cta')}
+              </button>
+            </div>
+
+            {/* Plano Pro (Destaque) */}
+            <div className="border-2 border-purple-600 rounded-lg p-8 bg-gradient-to-br from-purple-50 to-blue-50 transform scale-105 relative">
+              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                {t('pricing.planPro.badge')}
+              </div>
+
+              <h3 className="text-2xl font-bold mb-2">{t('pricing.planPro.name')}</h3>
+              <p className="text-gray-600 mb-6">{t('pricing.planPro.description')}</p>
+              
+              <div className="text-4xl font-bold text-purple-600 mb-6">
+                {t('pricing.planPro.price')}<span className="text-lg text-gray-600">{t('pricing.planPro.period')}</span>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPro.feature1')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPro.feature2')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPro.feature3')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPro.feature4')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPro.feature5')}</span>
+                </li>
+              </ul>
+
+              <button 
+                onClick={() => !isAuthenticated ? setLocation('/login') : setLocation('/billing')}
+                className="w-full bg-purple-600 text-white font-bold py-3 rounded-lg hover:bg-purple-700 transition-all"
+              >
+                {t('pricing.planPro.cta')}
+              </button>
+            </div>
+
+            {/* Plano Premium */}
+            <div className="border-2 border-gray-200 rounded-lg p-8 hover:border-purple-300 transition-all">
+              <h3 className="text-2xl font-bold mb-2">{t('pricing.planPremium.name')}</h3>
+              <p className="text-gray-600 mb-6">{t('pricing.planPremium.description')}</p>
+              
+              <div className="text-4xl font-bold text-purple-600 mb-6">
+                {t('pricing.planPremium.price')}<span className="text-lg text-gray-600">{t('pricing.planPremium.period')}</span>
+              </div>
+
+              <ul className="space-y-3 mb-8">
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPremium.feature1')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPremium.feature2')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPremium.feature3')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPremium.feature4')}</span>
+                </li>
+                <li className="flex items-center">
+                  <span className="text-green-500 mr-3">✓</span>
+                  <span>{t('pricing.planPremium.feature5')}</span>
+                </li>
+              </ul>
+
+              <button 
+                onClick={() => !isAuthenticated ? setLocation('/login') : setLocation('/billing')}
+                className="w-full border-2 border-purple-600 text-purple-600 font-bold py-3 rounded-lg hover:bg-purple-50 transition-all"
+              >
+                {t('pricing.planPremium.cta')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 3.7: FAQ */}
+      <section className="py-16 px-4 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          {/* Título */}
+          <h2 className="text-4xl font-bold text-center mb-12">
+            {t('faq.title')}
+          </h2>
+
+          {/* FAQs */}
+          <div className="space-y-4">
+            {/* FAQ 1 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q1.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q1.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 2 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q2.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q2.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 3 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q3.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q3.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 4 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q4.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q4.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 5 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q5.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q5.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 6 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q6.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q6.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 7 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q7.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q7.answer')}
+              </p>
+            </details>
+
+            {/* FAQ 8 */}
+            <details className="bg-white p-6 rounded-lg shadow-sm cursor-pointer group">
+              <summary className="font-bold text-lg flex items-center justify-between">
+                {t('faq.q8.question')}
+                <span className="group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p className="mt-4 text-gray-700">
+                {t('faq.q8.answer')}
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
 
       {/* SEÇÃO 4: PREVIEW */}
       <VideoPreview 

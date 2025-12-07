@@ -14,7 +14,17 @@ const verticalSchema = z.enum([
   'religiao',
   'profissoes',
   'novelas',
-  'programas-tv'
+  'programas-tv',
+  'saude',
+  'educacao',
+  'bem-estar',
+  'qualidade-vida',
+  'saude-mental',
+  'meditacao',
+  'yoga',
+  'nutricao',
+  'lifestyle',
+  'desenvolvimento-pessoal'
 ]).optional();
 
 // Schema para deletar vídeo
@@ -64,7 +74,7 @@ export const userContentRouter = router({
   uploadRetentionVideo: protectedProcedure
     .input(z.object({
       file: z.any(), // File object
-      vertical: z.enum(['politica', 'futebol', 'series-filmes', 'comedia', 'religiao', 'profissoes', 'novelas', 'programas-tv']),
+      vertical: z.enum(['politica', 'futebol', 'series-filmes', 'comedia', 'religiao', 'profissoes', 'novelas', 'programas-tv', 'saude', 'educacao', 'bem-estar', 'qualidade-vida', 'saude-mental', 'meditacao', 'yoga', 'nutricao', 'lifestyle', 'desenvolvimento-pessoal']),
       name: z.string()
     }))
     .mutation(async ({ input, ctx }) => {
