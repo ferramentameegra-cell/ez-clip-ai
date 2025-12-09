@@ -73,7 +73,7 @@ export async function processClip(options: ProcessClipOptions): Promise<Processe
     ffmpeg(videoPath)
       .setStartTime(clipStart)
       .setDuration(duration)
-      .outputOptions(['-c:v libx264', '-preset ultrafast', '-crf 28', '-tune fastdecode', '-c:a aac', '-b:a 96k', '-threads 0'])
+      .outputOptions(['-c:v libx264', '-preset ultrafast', '-crf 30', '-tune fastdecode', '-c:a aac', '-b:a 64k', '-threads 0'])
       .output(mainClipPath)
       .on('end', () => resolve())
       .on('error', (err) => {
@@ -229,7 +229,7 @@ async function createVerticalComposition(
         '-map', '0:a',
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
-        '-crf', '28',
+        '-crf', '30',
         '-tune', 'fastdecode',
         '-threads', '0',
         '-c:a', 'aac',

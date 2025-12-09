@@ -47,30 +47,17 @@ export const videoRouter = router({
         throw new Error('URL do YouTube inválida');
       }
 
-      // OTIMIZAÇÃO: Validação rápida
-      try {
-        const info = await ytdl.getInfo(input.youtubeUrl, {
-          requestOptions: {
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Accept': '*/*',
-            }
-          }
-        });
-        const validation = validateVideo(
-          info, 
-          input.startTime ?? undefined, 
-          input.endTime ?? undefined
-        );
-        if (!validation.valid) {
-          throw new Error(validation.error || 'Vídeo inválido');
+      // OTIMIZAÇÃO CRÍTICA: Validação mínima (só URL básica)
+      // Validação completa será feita durante o download (não bloqueia criação do job)
+      if (input.startTime !== undefined && input.endTime !== undefined) {
+        if (input.startTime < 0) {
+          throw new Error('Tempo de início deve ser maior ou igual a 0');
         }
-      } catch (error: any) {
-        if (error.message.includes('inválido')) {
-          throw error;
+        if (input.endTime <= input.startTime) {
+          throw new Error('Tempo de fim deve ser maior que o tempo de início');
         }
-        throw new Error(`Erro ao validar vídeo: ${error.message}`);
       }
+      // Validação completa do vídeo será feita em downloadYouTubeVideo (mais eficiente)
 
       // Obter conexão do banco
       const db = await getDb();

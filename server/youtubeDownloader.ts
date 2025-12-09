@@ -86,18 +86,34 @@ export async function downloadYouTubeVideo(
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Obter informações do vídeo com headers otimizados
-  const info = await ytdl.getInfo(youtubeUrl, {
-    requestOptions: {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
+  // OTIMIZAÇÃO: Cache de info do vídeo (evita chamadas repetidas)
+  const cacheKey = youtubeUrl;
+  const cached = videoInfoCache.get(cacheKey);
+  let info;
+  
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+    logger.info(`[Download] Usando cache de informações do vídeo`);
+    info = cached.info;
+  } else {
+    logger.info(`[Download] Obtendo informações do vídeo: ${youtubeUrl}`);
+    info = await ytdl.getInfo(youtubeUrl, {
+      requestOptions: {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Accept': '*/*',
+        },
+        maxRedirects: 2,
       }
+    });
+    // Armazenar no cache
+    videoInfoCache.set(cacheKey, { info, timestamp: Date.now() });
+    // Limpar cache antigo (manter apenas últimos 50)
+    if (videoInfoCache.size > 50) {
+      const oldest = Array.from(videoInfoCache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+      videoInfoCache.delete(oldest[0]);
     }
-  });
+  }
   
   // Validar vídeo (passar startTime/endTime se fornecidos)
   const validation = validateVideo(info, startTime, endTime);
@@ -125,37 +141,36 @@ export async function downloadYouTubeVideo(
   
   logger.info(`[Download] ${logMessage}`);
 
-      // OTIMIZAÇÃO VELOCIDADE: Priorizar 480p-720p (mais rápido que 1080p)
-      // Buscar formatos com vídeo+áudio combinados (menos processamento)
+      // OTIMIZAÇÃO CRÍTICA: QUALIDADE MÍNIMA para velocidade máxima (360p-480p)
+      // Priorizar menor qualidade = download muito mais rápido
       let format = ytdl.chooseFormat(info.formats, {
-        quality: 'highestvideo',
+        quality: 'lowestvideo', // MUDANÇA: lowest ao invés de highest
         filter: (f: any) => 
           f.container === 'mp4' && 
           f.hasVideo && 
           f.hasAudio && 
-          (f.height || 0) <= 720 && // 720p máximo para velocidade
-          (f.height || 0) >= 360 && // Mínimo 360p para qualidade aceitável
-          f.audioBitrate && 
+          (f.height || 0) <= 480 && // 480p máximo
+          (f.height || 0) >= 240 && // Aceitar até 240p se necessário
           !f.isLive
       });
 
-      // Fallback: Se não encontrar 720p, aceitar até 480p
+      // Fallback: 360p se não encontrar 480p
       if (!format) {
         format = ytdl.chooseFormat(info.formats, {
-          quality: 'highestvideo',
+          quality: 'lowestvideo',
           filter: (f: any) => 
             f.container === 'mp4' && 
             f.hasVideo && 
             f.hasAudio && 
-            (f.height || 0) <= 480
+            (f.height || 0) <= 360
         });
       }
 
-      // Último fallback: Qualquer formato com vídeo+áudio (mesmo que separados)
+      // Último fallback: Qualquer formato baixo com vídeo+áudio
       if (!format) {
         format = ytdl.chooseFormat(info.formats, {
-          quality: 'highestvideo',
-          filter: (f: any) => f.container === 'mp4' && f.hasVideo && f.hasAudio
+          quality: 'lowestvideo',
+          filter: (f: any) => f.container === 'mp4' && f.hasVideo && f.hasAudio && (f.height || 0) <= 720
         });
       }
 
@@ -163,22 +178,25 @@ export async function downloadYouTubeVideo(
         throw new Error('Formato compatível não encontrado');
       }
 
-  // Download completo primeiro (necessário para cortar depois)
+  // OTIMIZAÇÃO: Download direto com buffer otimizado
   const tempVideoPath = path.join(outputDir, `temp_${videoFilename}`);
   const videoStream = ytdl(youtubeUrl, { 
     format,
-    highWaterMark: 1 << 25, // 32MB buffer para evitar muitas requisições
+    quality: 'lowest', // Forçar menor qualidade
+    highWaterMark: 1024 * 1024 * 8, // 8MB buffer (reduzido para menos overhead)
     requestOptions: {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': '*/*',
         'Connection': 'keep-alive',
-      }
+      },
+      maxRedirects: 2,
     }
   });
-  const writeStream = fs.createWriteStream(tempVideoPath);
+  const writeStream = fs.createWriteStream(tempVideoPath, {
+    highWaterMark: 1024 * 1024 * 8, // 8MB write buffer
+  });
+  logger.info(`[Download] Formato: ${format.height}p, iniciando download...`);
   await pipelineAsync(videoStream, writeStream);
 
   logger.info(`[Download] Vídeo completo baixado: ${tempVideoPath}`);
