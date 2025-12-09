@@ -38,15 +38,35 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
         // Usar endpoint do backend para obter informações do vídeo
         // @ts-ignore - import.meta.env é injetado pelo Vite
         const trpcUrl = import.meta.env?.VITE_TRPC_URL || '';
-        const backendUrl = trpcUrl 
+        let backendUrl = trpcUrl 
           ? trpcUrl.replace('/trpc', '') 
-          : 'http://localhost:3001';
+          : '';
         
-        const response = await fetch(`${backendUrl}/api/youtube/info?url=${encodeURIComponent(youtubeUrl)}`);
+        // Se não tiver VITE_TRPC_URL, usar URL atual menos /trpc ou localhost
+        if (!backendUrl) {
+          if (typeof window !== 'undefined') {
+            const currentOrigin = window.location.origin;
+            backendUrl = currentOrigin.includes('localhost') 
+              ? 'http://localhost:3001'
+              : currentOrigin;
+          } else {
+            backendUrl = 'http://localhost:3001';
+          }
+        }
+        
+        const apiUrl = `${backendUrl}/api/youtube/info?url=${encodeURIComponent(youtubeUrl)}`;
+        console.log('[VideoPreviewSelector] Buscando informações em:', apiUrl);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Erro ao buscar informações do vídeo' }));
-          throw new Error(errorData.error || 'Erro ao buscar informações do vídeo');
+          throw new Error(errorData.error || `Erro ao buscar informações do vídeo (${response.status})`);
         }
         
         const data = await response.json();
@@ -58,6 +78,7 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
           onTimeRangeChange(0, data.duration);
         }
       } catch (err: any) {
+        console.error('[VideoPreviewSelector] Erro:', err);
         setError(err.message || 'Erro ao carregar vídeo');
         setVideoInfo(null);
       } finally {

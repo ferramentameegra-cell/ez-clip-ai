@@ -39,19 +39,8 @@ export const videoRouter = router({
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;
 
-      // Verificar se usuário aceitou termos
-      const db = await getDb();
-      if (!db) throw new Error('Database not available');
-      
-      const [user] = await db
-        .select({ acceptedTerms: users.acceptedTerms })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-
-      if (!user?.acceptedTerms) {
-        throw new Error('Você precisa aceitar os Termos de Uso antes de processar vídeos. Acesse /terms');
-      }
+      // Verificar termos (opcional - pode ser false)
+      // Removido validação obrigatória - usuário pode processar sem aceitar termos
 
       // Validar URL do YouTube
       if (!isValidYouTubeUrl(input.youtubeUrl)) {

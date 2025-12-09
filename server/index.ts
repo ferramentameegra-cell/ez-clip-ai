@@ -140,7 +140,7 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Endpoint para obter informações do vídeo do YouTube
+// Endpoint para obter informações do vídeo do YouTube (público, não requer autenticação)
 app.get('/api/youtube/info', async (req, res) => {
   try {
     const { url } = req.query;
@@ -152,7 +152,7 @@ app.get('/api/youtube/info', async (req, res) => {
     const ytdl = (await import('@distube/ytdl-core')).default;
     const info = await ytdl.getInfo(url);
     
-    const duration = parseInt(info.videoDetails.lengthSeconds);
+    const duration = parseInt(info.videoDetails.lengthSeconds || '0');
     
     res.json({
       title: info.videoDetails.title,
