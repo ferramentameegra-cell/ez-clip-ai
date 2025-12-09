@@ -1,214 +1,218 @@
-# 🚀 DEPLOY COMPLETO NO RAILWAY - EZ CLIP AI
+# 🚀 DEPLOY COMPLETO NO RAILWAY - EZ CLIPS AI
 
-## ✅ STATUS: PRONTO PARA DEPLOY!
+## ✅ PRÉ-REQUISITOS JÁ IMPLEMENTADOS
 
-- ✅ Build passou com sucesso
-- ✅ Repositório conectado ao GitHub: `ferramentameegra-cell/ez-clip-ai`
-- ✅ Dockerfile configurado
-- ✅ Todos os arquivos prontos
+- ✅ Código commitado e enviado para GitHub
+- ✅ Todas as correções críticas implementadas:
+  - ✅ Bug max retries corrigido
+  - ✅ Sistema de logging com Winston
+  - ✅ Integração Stripe completa
+  - ✅ Rate limiting robusto
+  - ✅ Sistema de créditos funcionando
 
 ---
 
-## 🚀 PASSO A PASSO COMPLETO:
+## 📋 PASSO A PASSO DO DEPLOY
 
-### **PASSO 1: Fazer Push para GitHub**
+### 1. Aplicar Migrations no Banco de Dados (Railway MySQL)
 
-Execute no terminal:
+1. Acesse o **Railway Dashboard**
+2. Vá em seu projeto → **MySQL Database**
+3. Clique em **"Query"** ou **"Connect"**
+4. Execute o script `SQL_CRIAR_TABELAS_STRIPE.sql`:
 
-```bash
-cd /Users/danielmarczukbraun/Downloads/viral-clips-ai
-git add .
-git commit -m "Deploy: EZ clip ai - Correções aplicadas"
-git push origin main
+```sql
+-- Adicionar coluna stripeCustomerId
+ALTER TABLE users 
+ADD COLUMN IF NOT EXISTS stripe_customer_id VARCHAR(256) UNIQUE;
+
+-- Criar tabela subscriptions
+CREATE TABLE IF NOT EXISTS subscriptions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  stripe_customer_id VARCHAR(256) NOT NULL,
+  stripe_subscription_id VARCHAR(256) UNIQUE NOT NULL,
+  price_id VARCHAR(256) NOT NULL,
+  plan_key VARCHAR(256) NOT NULL,
+  billing_interval VARCHAR(256) NOT NULL,
+  status VARCHAR(256) NOT NULL,
+  current_period_start TIMESTAMP NULL,
+  current_period_end TIMESTAMP NULL,
+  cancel_at_period_end BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Criar tabela credit_ledgers
+CREATE TABLE IF NOT EXISTS credit_ledgers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  delta INT NOT NULL,
+  reason VARCHAR(256) NOT NULL,
+  meta JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 ```
 
-**OU use o script automático:**
+**OU** execute via CLI:
 
 ```bash
-bash fazer-push.sh
+railway connect mysql
+# Cole o SQL acima
 ```
 
 ---
 
-### **PASSO 2: Criar Projeto no Railway**
+### 2. Configurar Variáveis de Ambiente no Railway
 
-1. Acesse: **https://railway.app**
-2. Faça login (ou crie conta grátis)
-3. Clique em **"New Project"**
-4. Selecione **"Deploy from GitHub repo"**
-5. Autorize Railway a acessar seu GitHub (primeira vez)
-6. Selecione o repositório **"ez-clip-ai"**
+No **Railway Dashboard** → Seu projeto → **Variables**:
 
-✅ Railway detecta automaticamente e começa o deploy!
-
----
-
-### **PASSO 3: Adicionar Banco MySQL**
-
-No dashboard do projeto Railway:
-
-1. Clique em **"New"** (botão verde)
-2. Selecione **"Database" → "MySQL"**
-3. Railway cria automaticamente
-4. Aguarde ~30 segundos
-5. Clique no serviço MySQL
-6. Vá na aba **"Variables"**
-7. **COPIE** o valor de `MYSQL_URL` ou `DATABASE_URL`
-
----
-
-### **PASSO 4: Configurar Variáveis de Ambiente**
-
-No projeto principal Railway, vá em **"Variables"** e adicione:
-
-#### **VARIÁVEIS OBRIGATÓRIAS:**
-
-```env
-# Porta (Railway define automaticamente, mas vamos garantir)
-PORT=3001
+#### Variáveis Obrigatórias (já configuradas):
+```
+DATABASE_URL=mysql://... (gerado automaticamente pelo Railway)
+REDIS_URL=redis://... (gerado automaticamente pelo Railway)
+JWT_SECRET=sua_chave_secreta_aqui
+PORT=3000
 NODE_ENV=production
+```
 
-# Banco de Dados (copie do MySQL que você criou)
-DATABASE_URL=mysql://... (valor do MySQL que você copiou)
+#### Variáveis Stripe (NOVAS - CONFIGURAR AGORA):
 
-# JWT (crie um segredo aleatório forte)
-JWT_SECRET=ez_clip_ai_jwt_secret_2025_xyz123456789
+1. **Acesse** https://dashboard.stripe.com/test/products (test) ou https://dashboard.stripe.com/products (production)
 
-# Cloudflare R2 (você já configurou antes)
-AWS_ACCESS_KEY_ID=sua_access_key_r2
-AWS_SECRET_ACCESS_KEY=sua_secret_key_r2
+2. **Crie os produtos e preços**:
+   - Starter: R$ 29/mês, R$ 299/ano
+   - Creator: R$ 79/mês, R$ 799/ano  
+   - Pro: R$ 199/mês, R$ 1999/ano
+
+3. **Copie os Price IDs** (começam com `price_...`)
+
+4. **Adicione no Railway**:
+```
+STRIPE_SECRET_KEY=sk_test_... (ou sk_live_...)
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_STARTER_MONTH=price_...
+STRIPE_PRICE_STARTER_YEAR=price_...
+STRIPE_PRICE_CREATOR_MONTH=price_...
+STRIPE_PRICE_CREATOR_YEAR=price_...
+STRIPE_PRICE_PRO_MONTH=price_...
+STRIPE_PRICE_PRO_YEAR=price_...
+```
+
+#### Variáveis Storage (Cloudflare R2):
+```
+AWS_ACCESS_KEY_ID=seu_access_key_id
+AWS_SECRET_ACCESS_KEY=seu_secret_access_key
+AWS_S3_ENDPOINT=https://...r2.cloudflarestorage.com
+AWS_S3_BUCKET=nome_do_bucket
 AWS_REGION=auto
-AWS_S3_BUCKET=nome_do_seu_bucket_r2
-AWS_S3_ENDPOINT=https://seu_account_id.r2.cloudflarestorage.com
-
-# OpenAI (você já configurou)
-OPENAI_API_KEY=sua_openai_api_key
 ```
 
-#### **VARIÁVEL IMPORTANTE - VITE_TRPC_URL:**
-
-Depois que Railway finalizar o deploy e fornecer a URL, você precisa adicionar:
-
-```env
-VITE_TRPC_URL=https://seu-projeto.up.railway.app
+#### Variáveis APIs (já configuradas):
 ```
-
-**Como descobrir a URL:**
-- No Railway, vá em **"Settings" → "Domains"**
-- Railway fornece automaticamente: `seu-projeto.up.railway.app`
-
----
-
-### **PASSO 5: Aguardar Deploy**
-
-Railway faz deploy automaticamente! 
-
-Acompanhe os logs em tempo real no dashboard.
-
-**Tempo estimado:** ~5-10 minutos
-
-**Você verá:**
-```
-[INFO] Installing dependencies...
-[INFO] Building application...
-[INFO] Starting server...
+OPENAI_API_KEY=...
+BUILT_IN_FORGE_API_KEY=...
+BUILT_IN_FORGE_API_URL=https://api.manus.im
 ```
 
 ---
 
-### **PASSO 6: Aplicar Migrations (Criar Tabelas)**
+### 3. Configurar Build e Start Commands
 
-Após o deploy concluir, execute:
+No **Railway Dashboard** → Seu projeto → **Settings** → **Deploy**:
 
-**Via Railway Dashboard:**
-
-1. Vá em **"Deployments"**
-2. Clique no último deploy
-3. Clique em **"Shell"** ou **"Open Shell"**
-4. Execute:
-
+**Build Command:**
 ```bash
-npm run db:push
+npm install && npm run build
 ```
 
-**OU via Railway CLI (se tiver instalado):**
-
+**Start Command:**
 ```bash
-railway run npm run db:push
+npm start
+```
+
+**Node Version:**
+```
+22
 ```
 
 ---
 
-### **PASSO 7: Atualizar VITE_TRPC_URL**
+### 4. Configurar Webhook do Stripe
 
-1. No Railway, vá em **"Settings" → "Domains"**
-2. Copie a URL fornecida (ex: `https://ez-clip-ai-production.up.railway.app`)
-3. Vá em **"Variables"**
-4. Adicione/atualize:
-
-```env
-VITE_TRPC_URL=https://ez-clip-ai-production.up.railway.app
-```
-
-5. Railway faz redeploy automático! (~2-3 minutos)
-
----
-
-### **PASSO 8: Testar o Site!**
-
-Acesse a URL fornecida pelo Railway:
-
-```
-https://seu-projeto.up.railway.app
-```
+1. **Acesse** https://dashboard.stripe.com/webhooks
+2. **Clique** em "Add endpoint"
+3. **URL do endpoint**: `https://seu-dominio.railway.app/api/webhooks/stripe`
+4. **Eventos para escutar**:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.payment_succeeded`
+5. **Copie o "Signing secret"** (começa com `whsec_...`)
+6. **Adicione** no Railway como `STRIPE_WEBHOOK_SECRET`
 
 ---
 
-## ✅ CHECKLIST FINAL:
+### 5. Verificar Deploy
 
-- [ ] Push para GitHub feito
-- [ ] Projeto criado no Railway
-- [ ] Banco MySQL adicionado
+1. **Acesse** seu domínio Railway: `https://seu-projeto.railway.app`
+2. **Verifique logs** no Railway Dashboard → **Deployments** → **View Logs**
+3. **Teste endpoints**:
+   - Health: `https://seu-projeto.railway.app/health`
+   - tRPC: `https://seu-projeto.railway.app/trpc`
+
+---
+
+## 🔍 VERIFICAÇÕES PÓS-DEPLOY
+
+### ✅ Banco de Dados
+- [ ] Tabela `subscriptions` criada
+- [ ] Tabela `credit_ledgers` criada
+- [ ] Coluna `stripe_customer_id` em `users`
+
+### ✅ Redis
+- [ ] Redis conectado (ver logs: `[Redis] Conectado com sucesso`)
+- [ ] Sem erros "max retries"
+
+### ✅ Stripe
 - [ ] Variáveis de ambiente configuradas
-- [ ] Deploy concluído com sucesso
-- [ ] Migrations aplicadas
-- [ ] VITE_TRPC_URL configurada
-- [ ] Site acessível
+- [ ] Webhook configurado e funcionando
+- [ ] Price IDs corretos
+
+### ✅ Aplicação
+- [ ] Servidor iniciado (`🚀 Backend rodando`)
+- [ ] Fila de processamento ativa (`[Queue] Fila inicializada`)
+- [ ] Sem erros críticos nos logs
 
 ---
 
-## 🎉 PRONTO!
+## 🐛 TROUBLESHOOTING
 
-Seu site estará no ar! 🚀
+### Erro: "max retries per request limit"
+**Solução:** ✅ JÁ CORRIGIDO - Redis configurado com `maxRetriesPerRequest: null`
 
----
+### Erro: "Table 'subscriptions' doesn't exist"
+**Solução:** Execute o SQL acima no Railway MySQL
 
-## 📝 NOTAS:
+### Erro: "Stripe webhook signature verification failed"
+**Solução:** Verifique se `STRIPE_WEBHOOK_SECRET` está correto no Railway
 
-- ✅ Railway fornece HTTPS automaticamente
-- ✅ Deploy automático a cada push no GitHub
-- ✅ MySQL é gerenciado pelo Railway
-- ✅ FFmpeg já está no Dockerfile
-- ✅ PORT é detectado automaticamente
-
----
-
-## 🐛 TROUBLESHOOTING:
-
-### Erro: "Cannot connect to database"
-- Verifique se `DATABASE_URL` está correta
-- Verifique se o MySQL foi criado
-
-### Erro: "Build failed"
-- Verifique os logs no Railway
-- Verifique se todas as dependências estão no `package.json`
-
-### Site não carrega
-- Verifique se `VITE_TRPC_URL` está configurada
-- Verifique se o deploy concluiu
-- Verifique os logs de erro
+### Erro: "Rate limit exceeded"
+**Solução:** Normal - sistema de rate limiting funcionando. Aguarde e tente novamente.
 
 ---
 
-**Boa sorte com o deploy!** 🚀
+## 📝 NOTAS IMPORTANTES
 
+1. **Primeiro deploy** pode levar 3-5 minutos
+2. **Migrations** devem ser aplicadas ANTES do primeiro deploy
+3. **Redis** deve estar rodando antes do backend iniciar
+4. **Webhook Stripe** só funciona com HTTPS (Railway fornece automaticamente)
+
+---
+
+## ✅ PRONTO PARA DEPLOY!
+
+Execute os passos acima e o site estará 100% funcional! 🚀
