@@ -33,8 +33,8 @@ export const videoRouter = router({
       overlapSec: z.number().optional(),
       segmentationMode: z.enum(['fixed', 'semantic', 'hybrid']).optional(),
       // Seleção de trecho do vídeo
-      startTime: z.number().min(0).optional(),
-      endTime: z.number().min(0).optional(),
+      startTime: z.number().min(0).optional().nullable(),
+      endTime: z.number().min(0).optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.user.id;

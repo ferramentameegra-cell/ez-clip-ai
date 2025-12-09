@@ -183,18 +183,31 @@ export function Home() {
     }
 
     // Criar o job diretamente
-    createJob.mutate({
+    // Preparar dados do job
+    const jobData: any = {
       youtubeUrl,
-      packageSize: packageSize || undefined, // Novo sistema de pacotes
-      clipDuration: packageSize ? undefined : Number(clipDuration), // Usar clipDuration apenas se não usar pacote
+      packageSize: packageSize || undefined,
+      clipDuration: packageSize ? undefined : Number(clipDuration),
       withSubtitles: addSubtitles,
       vertical: vertical as VerticalType,
       secondaryContentType: secondaryType !== 'none' ? secondaryType : undefined,
-      secondaryContentId: secondaryType !== 'none' && (selectedVideo || selectedEmoji) ? (selectedVideo || selectedEmoji || undefined) : undefined,
       headline: headline || undefined,
-      startTime: videoStartTime !== undefined ? videoStartTime : undefined,
-      endTime: videoEndTime !== undefined ? videoEndTime : undefined,
-    });
+    };
+
+    // Adicionar campos opcionais apenas se estiverem definidos
+    if (secondaryType !== 'none' && (selectedVideo || selectedEmoji)) {
+      jobData.secondaryContentId = selectedVideo || selectedEmoji;
+    }
+    
+    // Adicionar startTime/endTime apenas se estiverem definidos (não undefined)
+    if (videoStartTime !== undefined && videoStartTime !== null) {
+      jobData.startTime = Number(videoStartTime);
+    }
+    if (videoEndTime !== undefined && videoEndTime !== null) {
+      jobData.endTime = Number(videoEndTime);
+    }
+
+    createJob.mutate(jobData);
   };
 
   // Verificar se usuário está logado

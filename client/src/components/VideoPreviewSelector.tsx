@@ -133,12 +133,16 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
     return parseInt(timeString) || 0;
   };
 
-  // Atualizar range quando startTime ou endTime mudarem
+  // Atualizar range apenas quando o usuário terminar de arrastar (não durante)
+  // Usar debounce para evitar muitas chamadas
   useEffect(() => {
-    if (videoInfo && startTime >= 0 && endTime > startTime && endTime <= videoInfo.duration) {
-      onTimeRangeChange(startTime, endTime);
+    if (!isDragging && videoInfo && startTime >= 0 && endTime > startTime && endTime <= videoInfo.duration) {
+      const timeoutId = setTimeout(() => {
+        onTimeRangeChange(startTime, endTime);
+      }, 100);
+      return () => clearTimeout(timeoutId);
     }
-  }, [startTime, endTime, videoInfo, onTimeRangeChange]);
+  }, [startTime, endTime, videoInfo, isDragging, onTimeRangeChange]);
 
   // Validar e ajustar tempos
   const handleStartTimeChange = (value: string) => {
@@ -256,8 +260,8 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
 
         {videoInfo && !isLoading && (
           <>
-            {/* Preview do vídeo */}
-            <div className="relative w-full bg-black rounded-lg overflow-hidden" style={{ aspectRatio: '16/9' }}>
+            {/* Preview do vídeo - Estático (não atualiza quando trim muda, como YouTube) */}
+            <div className="relative w-full bg-black rounded-lg overflow-hidden mx-auto" style={{ aspectRatio: '16/9', maxWidth: '50%', maxHeight: '300px' }}>
               {embedUrl && (
                 <iframe
                   ref={videoRef}
@@ -265,6 +269,8 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  style={{ pointerEvents: 'none' }} // Prevenir interações que podem causar reload
+                  key={videoId} // Apenas recriar quando o vídeo mudar, não quando trim mudar
                 />
               )}
             </div>
