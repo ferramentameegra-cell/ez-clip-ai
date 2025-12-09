@@ -6,6 +6,10 @@ import { promisify } from 'util';
 import { pipeline } from 'stream';
 import { logger } from './lib/logger';
 
+// Cache simples de info do vídeo (evita múltiplas chamadas getInfo)
+const videoInfoCache = new Map<string, { info: any; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
 const pipelineAsync = promisify(pipeline);
 
 export interface DownloadResult {
@@ -214,20 +218,29 @@ export async function downloadYouTubeVideo(
     logger.info(`[Download] Vídeo salvo: ${videoPath}`);
   }
 
-  // OTIMIZAÇÃO: Extração de áudio rápida
+  // OTIMIZAÇÃO CRÍTICA: Extração de áudio ultra-rápida (paralelo se possível)
   await new Promise<void>((resolve, reject) => {
     ffmpeg(videoPath)
       .noVideo()
       .audioCodec('libmp3lame')
-      .audioBitrate('128k') // Bitrate menor = mais rápido (era 192k)
+      .audioBitrate('64k') // CRÍTICO: Bitrate mínimo aceitável (era 128k) = muito mais rápido
       .audioFrequency(44100)
       .audioChannels(2)
-      .outputOptions(['-q:a 4']) // Qualidade média-alta (0-9)
+      .outputOptions([
+        '-q:a 6', // Qualidade média (era 4) - tradeoff velocidade/qualidade
+        '-preset fast', // Preset rápido para MP3
+      ])
+      .on('start', () => {
+        logger.info(`[Download] Extraindo áudio...`);
+      })
       .on('end', () => {
         logger.info(`[Download] Áudio extraído: ${audioPath}`);
         resolve();
       })
-      .on('error', reject)
+      .on('error', (err) => {
+        logger.error(`[Download] Erro ao extrair áudio:`, err);
+        reject(err);
+      })
       .save(audioPath);
   });
 

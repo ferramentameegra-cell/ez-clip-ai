@@ -47,13 +47,13 @@ export const videoRouter = router({
         throw new Error('URL do YouTube inválida');
       }
 
-      // OTIMIZAÇÃO: Validação rápida (timeout curto)
+      // OTIMIZAÇÃO: Validação rápida
       try {
         const info = await ytdl.getInfo(input.youtubeUrl, {
           requestOptions: {
-            timeout: 10000, // 10s timeout para validação rápida
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+              'Accept': '*/*',
             }
           }
         });
