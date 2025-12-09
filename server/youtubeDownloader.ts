@@ -201,7 +201,7 @@ export async function downloadYouTubeVideo(
 
   logger.info(`[Download] Vídeo completo baixado: ${tempVideoPath}`);
 
-  // OTIMIZAÇÃO: Corte com preset ultrafast
+  // OTIMIZAÇÃO CRÍTICA: Corte ultra-rápido (qualidade mínima aceitável)
   if (startTime !== undefined && endTime !== undefined) {
     await new Promise<void>((resolve, reject) => {
       ffmpeg(tempVideoPath)
@@ -209,15 +209,21 @@ export async function downloadYouTubeVideo(
         .setDuration(actualDuration)
         .outputOptions([
           '-c:v libx264',
-          '-preset ultrafast', // Máxima velocidade (era 'fast')
-          '-crf 28', // Qualidade menor = mais rápido (era 23)
+          '-preset ultrafast',
+          '-crf 30', // CRÍTICO: Qualidade mínima (era 28) = muito mais rápido
           '-tune fastdecode',
           '-movflags +faststart',
           '-c:a aac',
-          '-b:a 96k', // Bitrate menor = mais rápido (era 128k)
-          '-threads 0', // Usar todos os cores
+          '-b:a 64k', // CRÍTICO: Bitrate mínimo (era 96k) = muito mais rápido
+          '-ac 2',
+          '-ar 44100',
+          '-threads 0',
+          '-avoid_negative_ts make_zero',
         ])
         .output(videoPath)
+        .on('start', () => {
+          logger.info(`[Download] Cortando vídeo (${startTime}s-${endTime}s)...`);
+        })
         .on('end', () => {
           logger.info(`[Download] Vídeo cortado: ${videoPath}`);
           if (fs.existsSync(tempVideoPath)) {
