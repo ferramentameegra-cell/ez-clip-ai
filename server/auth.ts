@@ -46,34 +46,160 @@ export function verifyToken(token: string): { userId: number; email: string } | 
 
 /**
  * Busca usuário por email
+ * Usa SQL direto para evitar problemas com colunas que podem não existir ainda
  */
 export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  try {
+    // Tentar com todas as colunas (incluindo onboarding)
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  return result[0] || null;
+    return result[0] || null;
+  } catch (error: any) {
+    // Se der erro por colunas não existentes, usar SQL direto
+    if (error.message?.includes('onboarding') || error.code === 'ER_BAD_FIELD_ERROR') {
+      const connection = await import('mysql2/promise');
+      const mysqlDb = await connection.default.createConnection({
+        uri: process.env.DATABASE_URL,
+      });
+
+      const [rows] = await mysqlDb.execute(
+        `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
+         accepted_terms, accepted_terms_at, language, avatar_url, bio,
+         tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
+         youtube_access_token, youtube_refresh_token, tiktok_access_token, tiktok_refresh_token,
+         instagram_access_token, instagram_refresh_token,
+         created_at, updated_at, last_signed_in
+         FROM users WHERE email = ?`,
+        [email]
+      );
+
+      await mysqlDb.end();
+
+      const row = (rows as any[])[0];
+      if (!row) return null;
+
+      // Converter snake_case para camelCase
+      return {
+        id: row.id,
+        openId: row.open_id,
+        name: row.name,
+        email: row.email,
+        passwordHash: row.password_hash,
+        loginMethod: row.login_method,
+        role: row.role,
+        credits: row.credits,
+        acceptedTerms: row.accepted_terms,
+        acceptedTermsAt: row.accepted_terms_at,
+        language: row.language,
+        avatarUrl: row.avatar_url,
+        bio: row.bio,
+        tiktokUsername: row.tiktok_username,
+        instagramUsername: row.instagram_username,
+        youtubeChannelId: row.youtube_channel_id,
+        youtubeShortsEnabled: row.youtube_shorts_enabled,
+        youtubeAccessToken: row.youtube_access_token,
+        youtubeRefreshToken: row.youtube_refresh_token,
+        tiktokAccessToken: row.tiktok_access_token,
+        tiktokRefreshToken: row.tiktok_refresh_token,
+        instagramAccessToken: row.instagram_access_token,
+        instagramRefreshToken: row.instagram_refresh_token,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        lastSignedIn: row.last_signed_in,
+        onboardingUseCase: null,
+        onboardingNiche: null,
+        onboardingAt: null,
+      };
+    }
+
+    throw error;
+  }
 }
 
 /**
  * Busca usuário por ID
+ * Usa SQL direto para evitar problemas com colunas que podem não existir ainda
  */
 export async function getUserById(userId: number) {
   const db = await getDb();
   if (!db) return null;
 
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  try {
+    // Tentar com todas as colunas (incluindo onboarding)
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
 
-  return result[0] || null;
+    return result[0] || null;
+  } catch (error: any) {
+    // Se der erro por colunas não existentes, usar SQL direto
+    if (error.message?.includes('onboarding') || error.code === 'ER_BAD_FIELD_ERROR') {
+      const connection = await import('mysql2/promise');
+      const mysqlDb = await connection.default.createConnection({
+        uri: process.env.DATABASE_URL,
+      });
+
+      const [rows] = await mysqlDb.execute(
+        `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
+         accepted_terms, accepted_terms_at, language, avatar_url, bio,
+         tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
+         youtube_access_token, youtube_refresh_token, tiktok_access_token, tiktok_refresh_token,
+         instagram_access_token, instagram_refresh_token,
+         created_at, updated_at, last_signed_in
+         FROM users WHERE id = ?`,
+        [userId]
+      );
+
+      await mysqlDb.end();
+
+      const row = (rows as any[])[0];
+      if (!row) return null;
+
+      // Converter snake_case para camelCase
+      return {
+        id: row.id,
+        openId: row.open_id,
+        name: row.name,
+        email: row.email,
+        passwordHash: row.password_hash,
+        loginMethod: row.login_method,
+        role: row.role,
+        credits: row.credits,
+        acceptedTerms: row.accepted_terms,
+        acceptedTermsAt: row.accepted_terms_at,
+        language: row.language,
+        avatarUrl: row.avatar_url,
+        bio: row.bio,
+        tiktokUsername: row.tiktok_username,
+        instagramUsername: row.instagram_username,
+        youtubeChannelId: row.youtube_channel_id,
+        youtubeShortsEnabled: row.youtube_shorts_enabled,
+        youtubeAccessToken: row.youtube_access_token,
+        youtubeRefreshToken: row.youtube_refresh_token,
+        tiktokAccessToken: row.tiktok_access_token,
+        tiktokRefreshToken: row.tiktok_refresh_token,
+        instagramAccessToken: row.instagram_access_token,
+        instagramRefreshToken: row.instagram_refresh_token,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        lastSignedIn: row.last_signed_in,
+        onboardingUseCase: null,
+        onboardingNiche: null,
+        onboardingAt: null,
+      };
+    }
+
+    throw error;
+  }
 }
 
 /**
