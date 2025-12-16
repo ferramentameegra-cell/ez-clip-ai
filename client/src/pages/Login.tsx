@@ -103,10 +103,21 @@ export function Login() {
     }, FRONTEND_TIMEOUT);
 
     try {
-      // Obter URL do backend
+      // Obter URL do backend - garantir que está correta
       // @ts-ignore
-      const backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || 
-                        (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001');
+      let backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || '';
+      
+      // Se não tiver VITE_TRPC_URL, usar origin atual
+      if (!backendUrl && typeof window !== 'undefined') {
+        backendUrl = window.location.origin;
+      }
+      
+      // Fallback para localhost se nada funcionar
+      if (!backendUrl) {
+        backendUrl = 'http://localhost:3001';
+      }
+
+      console.log('[Login] URL do backend:', `${backendUrl}/auth/login`);
 
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
