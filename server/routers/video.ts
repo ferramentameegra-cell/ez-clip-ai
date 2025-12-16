@@ -1,4 +1,4 @@
-import { router, protectedProcedure } from '../_core/trpc';
+import { router, protectedProcedure, publicProcedure } from '../_core/trpc';
 import { z } from 'zod';
 import { getDb } from '../db';
 import { jobs, clips } from '../../drizzle/schema';
@@ -14,8 +14,8 @@ import { generateJobZip } from '../zipGenerator';
 // Usando protectedProcedure - requer autenticação
 
 export const videoRouter = router({
-  // Criar novo job
-  create: protectedProcedure
+  // Criar novo job (público - sem necessidade de login)
+  create: publicProcedure
     .input(z.object({
       youtubeUrl: z.string().url(),
       // Sistema de pacotes (NOVO)
@@ -74,11 +74,14 @@ export const videoRouter = router({
         creditsNeeded = packageSize; // 1 crédito por clipe
       }
 
-      // Verificar créditos suficientes
-      const hasCredits = await hasEnoughCredits(userId, creditsNeeded);
-      if (!hasCredits) {
-        throw new Error(`Créditos insuficientes. Necessário: ${creditsNeeded}`);
+      // Verificar créditos apenas se houver usuário autenticado
+      if (userId) {
+        const hasCredits = await hasEnoughCredits(userId, creditsNeeded);
+        if (!hasCredits) {
+          throw new Error(`Créditos insuficientes. Necessário: ${creditsNeeded}`);
+        }
       }
+      // Se não houver userId, permitir criação sem verificação de créditos
 
       // Preparar valores do job
       const jobValues: any = {
