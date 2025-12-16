@@ -142,7 +142,7 @@ app.use('/trpc', async (req, res) => {
     const duration = Date.now() - requestStartTime;
     logger.info(`[tRPC] 📤 Response enviado: ${response.status} (${duration}ms)`);
     
-    const text = await response.text();
+    // Copiar status e headers
     res.status(response.status);
     response.headers.forEach((value, key) => {
       // Evitar conflitos com headers já definidos
@@ -150,7 +150,12 @@ app.use('/trpc', async (req, res) => {
         res.setHeader(key, value);
       }
     });
-    res.send(text);
+    
+    // Usar arrayBuffer() ao invés de text() para evitar problemas com stream
+    // arrayBuffer() também consome o stream, mas é mais seguro para binários
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    res.send(buffer);
   } catch (error: any) {
     logger.error('[tRPC] Erro ao processar request:', error);
     logger.error('[tRPC] Stack:', error.stack);

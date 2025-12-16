@@ -126,7 +126,9 @@ async function transcribeWithManusForge(
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
+    // Clonar response antes de ler para não consumir o stream
+    const clonedResponse = response.clone();
+    const errorText = await clonedResponse.text();
     throw new Error(`Transcrição falhou: ${response.statusText} - ${errorText}`);
   }
 
