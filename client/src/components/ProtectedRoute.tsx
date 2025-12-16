@@ -26,6 +26,8 @@ export function ProtectedRoute({
     enabled: requireOnboarding && !!token,
     retry: false,
     refetchOnWindowFocus: false,
+    staleTime: 30000, // Cache por 30 segundos
+    gcTime: 60000, // Manter em cache por 1 minuto
   });
 
   // Verificar perfil (para role admin)
@@ -36,10 +38,22 @@ export function ProtectedRoute({
   });
 
   useEffect(() => {
+    console.log('[ProtectedRoute] Verificando acesso...', {
+      hasToken: !!token,
+      hasUser: !!userStr,
+      requireOnboarding,
+      requireAdmin,
+      isLoadingOnboarding,
+      isLoadingProfile,
+      onboardingError: !!onboardingError,
+      profileError: !!profileError,
+    });
+
     setIsChecking(true);
 
     // Se não está autenticado
     if (!token || !userStr) {
+      console.log('[ProtectedRoute] Não autenticado, redirecionando para login');
       setRedirectTo('/login');
       setIsChecking(false);
       return;
@@ -48,6 +62,7 @@ export function ProtectedRoute({
     // Se precisa de onboarding, aguardar query terminar
     if (requireOnboarding) {
       if (isLoadingOnboarding) {
+        console.log('[ProtectedRoute] Aguardando verificação de onboarding...');
         // Ainda carregando, aguardar
         return;
       }
@@ -60,16 +75,26 @@ export function ProtectedRoute({
         return;
       }
       
-      if (onboardingData && !onboardingData.completed) {
+      // Se não tem dados ainda, aguardar
+      if (onboardingData === undefined) {
+        console.log('[ProtectedRoute] Dados de onboarding ainda não disponíveis');
+        return;
+      }
+      
+      if (!onboardingData.completed) {
+        console.log('[ProtectedRoute] Onboarding não completado, redirecionando...');
         setRedirectTo('/onboarding');
         setIsChecking(false);
         return;
       }
+      
+      console.log('[ProtectedRoute] Onboarding completado, permitindo acesso');
     }
 
     // Se precisa ser admin, aguardar query terminar
     if (requireAdmin) {
       if (isLoadingProfile) {
+        console.log('[ProtectedRoute] Aguardando verificação de perfil...');
         // Ainda carregando, aguardar
         return;
       }
@@ -81,14 +106,23 @@ export function ProtectedRoute({
         return;
       }
       
-      if (profileData && profileData.role !== 'admin') {
+      if (profileData === undefined) {
+        console.log('[ProtectedRoute] Dados de perfil ainda não disponíveis');
+        return;
+      }
+      
+      if (profileData.role !== 'admin') {
+        console.log('[ProtectedRoute] Usuário não é admin, redirecionando...');
         setRedirectTo('/');
         setIsChecking(false);
         return;
       }
+      
+      console.log('[ProtectedRoute] Usuário é admin, permitindo acesso');
     }
 
     // Tudo OK, permitir acesso
+    console.log('[ProtectedRoute] Acesso permitido');
     setIsChecking(false);
     setRedirectTo(null);
   }, [token, userStr, requireOnboarding, requireAdmin, onboardingData, profileData, isLoadingOnboarding, isLoadingProfile, onboardingError, profileError]);

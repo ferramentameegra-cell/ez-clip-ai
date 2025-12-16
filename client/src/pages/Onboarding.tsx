@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 
@@ -13,7 +13,21 @@ export function Onboarding() {
   const [useCase, setUseCase] = useState('');
   const [niche, setNiche] = useState('');
 
+  // Verificar se já completou onboarding
+  const { data: onboardingCheck, isLoading: isLoadingCheck } = trpc.onboarding.check.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
+
   const completeMutation = trpc.onboarding.complete.useMutation();
+
+  // Se já completou onboarding, redirecionar para dashboard
+  useEffect(() => {
+    if (!isLoadingCheck && onboardingCheck?.completed) {
+      console.log('[Onboarding] Já completado, redirecionando para dashboard');
+      setLocation('/dashboard');
+    }
+  }, [onboardingCheck, isLoadingCheck, setLocation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +44,26 @@ export function Onboarding() {
       });
 
       toast.success('Onboarding concluído! Bem-vindo ao EZ Clip AI! 🎉');
-      setLocation('/');
+      // Redirecionar para dashboard após completar
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
     } catch (error: any) {
       toast.error(error.message || 'Erro ao salvar onboarding. Tente novamente.');
     }
   };
+
+  // Mostrar loading enquanto verifica
+  if (isLoadingCheck) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-purple-600" />
+          <div>Verificando...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">

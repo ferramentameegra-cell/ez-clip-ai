@@ -25,17 +25,17 @@ export function Login() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (result) => {
       try {
+        console.log('[Login] Login bem-sucedido, salvando dados...');
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
+        console.log('[Login] Dados salvos, redirecionando...');
         toast.success(t('login.loginSuccess'));
         
-        // Pequeno delay para garantir que o localStorage foi salvo
+        // Redirecionar imediatamente para onboarding primeiro (mais seguro)
+        // O onboarding vai verificar se já foi completado e redirecionar para dashboard se necessário
         setTimeout(() => {
-          // Redirecionar para dashboard ou URL de retorno
-          const params = new URLSearchParams(window.location.search);
-          const redirect = params.get('redirect') || '/dashboard';
-          window.location.href = redirect; // Usar window.location.href para forçar reload
-        }, 100);
+          window.location.href = '/onboarding';
+        }, 500);
       } catch (error) {
         console.error('[Login] Erro ao salvar dados:', error);
         toast.error('Erro ao fazer login. Tente novamente.');
@@ -43,6 +43,11 @@ export function Login() {
     },
     onError: (error) => {
       console.error('[Login] Erro na mutation:', error);
+      console.error('[Login] Detalhes do erro:', {
+        message: error.message,
+        data: error.data,
+        shape: error.shape,
+      });
       toast.error(error.message || t('login.loginError'));
     },
   });
