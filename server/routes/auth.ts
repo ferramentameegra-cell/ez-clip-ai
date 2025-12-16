@@ -88,11 +88,22 @@ router.post('/login', async (req: Request, res: Response) => {
 
     try {
       const dbStartTime = Date.now();
-      connection = await getPoolConnection();
+      logger.info(`[Auth] [${requestId}] 🔄 Obtendo conexão do pool...`);
+      
+      // Timeout de 1 segundo para obter conexão
+      const connectionPromise = getPoolConnection();
+      const connectionTimeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Timeout ao obter conexão do pool (1s)'));
+        }, 1000);
+      });
+
+      connection = await Promise.race([connectionPromise, connectionTimeoutPromise]);
       const dbConnectTime = Date.now() - dbStartTime;
       logger.info(`[Auth] [${requestId}] ✅ Conexão obtida: ${dbConnectTime}ms`);
 
-      // Query com timeout de 2 segundos (deixando 1s para o resto)
+      // Query com timeout de 1.5 segundos
+      const queryStartTime = Date.now();
       const queryPromise = connection.execute(
         `SELECT id, email, name, password_hash, login_method, role, credits, language, avatar_url
          FROM users 
@@ -103,12 +114,12 @@ router.post('/login', async (req: Request, res: Response) => {
 
       const queryTimeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error('Query timeout (2s)'));
-        }, 2000);
+          reject(new Error('Query timeout (1.5s)'));
+        }, 1500);
       });
 
       const [rows] = await Promise.race([queryPromise, queryTimeoutPromise]);
-      const queryTime = Date.now() - dbStartTime;
+      const queryTime = Date.now() - queryStartTime;
       logger.info(`[Auth] [${requestId}] ✅ Query executada: ${queryTime}ms`);
 
       user = (rows as any[])[0];
@@ -119,7 +130,11 @@ router.post('/login', async (req: Request, res: Response) => {
       }
     } catch (dbError: any) {
       if (connection) {
-        connection.release();
+        try {
+          connection.release();
+        } catch (releaseError) {
+          // Ignorar erro ao liberar conexão
+        }
         connection = null;
       }
 
@@ -127,10 +142,21 @@ router.post('/login', async (req: Request, res: Response) => {
       logger.error(`[Auth] [${requestId}] ❌ Erro no banco de dados:`, {
         error: dbError.message,
         code: dbError.code,
+        errno: dbError.errno,
         duration: `${dbDuration}ms`,
       });
 
       clearTimeout(timeoutId);
+      
+      // Se for timeout, retornar mensagem específica
+      if (dbError.message?.includes('timeout') || dbError.message?.includes('Timeout')) {
+        return res.status(500).json({
+          success: false,
+          error: 'Timeout: O banco de dados não respondeu a tempo',
+          requestId,
+        });
+      }
+
       return res.status(500).json({
         success: false,
         error: 'Erro ao conectar com o banco de dados',

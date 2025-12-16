@@ -36,11 +36,25 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting global (antes de outras rotas)
+// ============================================
+// ROTAS DE AUTENTICAÇÃO REST (ANTES DE TUDO)
+// ============================================
+// IMPORTANTE: Registrar ANTES de outros middlewares
+// para garantir que a rota /auth/login seja acessível
+app.use(express.json({ limit: '10mb' })); // JSON parser global
+app.use('/auth', globalLimiter);
+
+// Importar e usar rotas de auth
+import authRoutes from './routes/auth';
+app.use('/auth', authRoutes);
+
+logger.info('[Server] ✅ Rotas de autenticação REST configuradas: POST /auth/login');
+
+// Rate limiting global (depois de auth)
 app.use('/api/', globalLimiter);
 app.use('/trpc/', globalLimiter);
 
-// Rate limiting para autenticação
+// Rate limiting para autenticação tRPC (legado)
 app.use('/trpc/auth.login', authLimiter);
 app.use('/trpc/auth.signup', authLimiter);
 
@@ -167,18 +181,7 @@ app.use('/trpc', async (req, res) => {
   }
 });
 
-// ============================================
-// ROTAS DE AUTENTICAÇÃO REST (NOVO SISTEMA)
-// ============================================
-// Middleware para JSON nas rotas de auth (ANTES de outras rotas)
-app.use('/auth', express.json({ limit: '10mb' }));
-app.use('/auth', globalLimiter);
-
-// Importar e usar rotas de auth
-import authRoutes from './routes/auth';
-app.use('/auth', authRoutes);
-
-logger.info('[Server] ✅ Rotas de autenticação REST configuradas: POST /auth/login');
+// Rotas de auth já foram registradas acima
 
 // Middlewares para outras rotas (após tRPC)
 app.use(express.json({ limit: '50mb' }));
