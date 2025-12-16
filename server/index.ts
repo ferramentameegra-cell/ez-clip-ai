@@ -8,12 +8,27 @@ import { Context } from './_core/trpc';
 import { globalLimiter, authLimiter } from './middleware/rateLimit';
 import { logger } from './lib/logger';
 import { Readable } from 'stream';
+import { getConnectionPool } from './db';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// ============================================
+// INICIALIZAÇÃO GLOBAL DO POOL DE CONEXÕES
+// ============================================
+// Pool é inicializado ANTES de qualquer rota
+// Isso garante que não há criação de conexão dentro das rotas
+logger.info('[Server] 🔌 Inicializando pool de conexões globalmente...');
+try {
+  getConnectionPool();
+  logger.info('[Server] ✅ Pool de conexões inicializado globalmente');
+} catch (error: any) {
+  logger.error('[Server] ❌ Erro ao inicializar pool:', error.message);
+  process.exit(1);
+}
 
 // Middlewares
 app.use(cors({
@@ -152,11 +167,23 @@ app.use('/trpc', async (req, res) => {
   }
 });
 
+// ============================================
+// ROTAS DE AUTENTICAÇÃO REST (NOVO SISTEMA)
+// ============================================
+// Middleware para JSON nas rotas de auth (ANTES de outras rotas)
+app.use('/auth', express.json({ limit: '10mb' }));
+app.use('/auth', globalLimiter);
+
+// Importar e usar rotas de auth
+import authRoutes from './routes/auth';
+app.use('/auth', authRoutes);
+
+logger.info('[Server] ✅ Rotas de autenticação REST configuradas: POST /auth/login');
+
 // Middlewares para outras rotas (após tRPC)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Health check
 // Health check com verificação de banco
 app.get('/health', async (_req, res) => {
   try {

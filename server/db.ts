@@ -7,8 +7,9 @@ let connectionPool: mysql.Pool | null = null;
 
 /**
  * Obtém pool de conexões MySQL (reutilizável e eficiente)
+ * EXPORTADO para inicialização global no servidor
  */
-function getConnectionPool(): mysql.Pool {
+export function getConnectionPool(): mysql.Pool {
   if (connectionPool) return connectionPool;
 
   const databaseUrl = process.env.DATABASE_URL;
