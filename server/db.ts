@@ -62,7 +62,6 @@ export async function checkPoolHealth(): Promise<{ healthy: boolean; message: st
   const startTime = Date.now();
   
   try {
-    const pool = getConnectionPool();
     const connection = await getPoolConnection();
     
     // Testar query simples
