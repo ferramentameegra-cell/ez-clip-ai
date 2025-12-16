@@ -36,7 +36,8 @@ export const videoRouter = router({
       endTime: z.number().min(0).optional().nullable(),
     }))
     .mutation(async ({ input, ctx }) => {
-      const userId = ctx.user.id;
+      // Permitir criação sem autenticação - userId opcional
+      const userId = ctx.user?.id || null;
 
       // Verificar termos (opcional - pode ser false)
       // Removido validação obrigatória - usuário pode processar sem aceitar termos
@@ -85,7 +86,7 @@ export const videoRouter = router({
 
       // Preparar valores do job
       const jobValues: any = {
-        userId: userId,
+        userId: userId || null, // Permitir null quando não há autenticação
         sourceUrl: input.youtubeUrl,
         startTime: input.startTime !== undefined ? input.startTime : null,
         endTime: input.endTime !== undefined ? input.endTime : null,
