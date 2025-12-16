@@ -118,6 +118,7 @@ export function LoginNew() {
 
     try {
       // Obter URL do backend
+      // @ts-ignore - import.meta.env é injetado pelo Vite
       const backendUrl = import.meta.env?.VITE_TRPC_URL?.replace('/trpc', '') || 
                         (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001');
 
