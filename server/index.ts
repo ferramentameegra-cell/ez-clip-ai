@@ -115,19 +115,32 @@ app.use('/trpc', async (req, res) => {
       body,
     });
 
+    const requestStartTime = Date.now();
+    logger.info(`[tRPC] 📥 Request recebido: ${req.method} ${req.url}`);
+    
     const response = await fetchRequestHandler({
       endpoint: '/trpc',
       req: fetchRequest,
       router: appRouter,
       createContext: () => createContext(req),
       onError: ({ error, path, type }) => {
-        logger.error(`[tRPC] Erro em ${path} (${type}):`, error);
+        const duration = Date.now() - requestStartTime;
+        logger.error(`[tRPC] ❌ Erro em ${path} (${type}) após ${duration}ms:`, {
+          message: error.message,
+          code: error.code,
+          cause: error.cause,
+          stack: error.stack?.substring(0, 500), // Primeiros 500 caracteres do stack
+        });
+        
         // Garantir que erros sejam serializáveis
         if (error.cause) {
           logger.error('[tRPC] Error cause:', error.cause);
         }
       },
     });
+    
+    const duration = Date.now() - requestStartTime;
+    logger.info(`[tRPC] 📤 Response enviado: ${response.status} (${duration}ms)`);
     
     const text = await response.text();
     res.status(response.status);

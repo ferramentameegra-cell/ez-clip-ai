@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
@@ -21,34 +21,98 @@ export function Login() {
     email?: string;
     password?: string;
   }>({});
+  
+  // Timeout de segurança para garantir que loading sempre finalize
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
+    onMutate: () => {
+      console.log('[Login] Iniciando login...', { email: email.trim().toLowerCase() });
+      
+      // Timeout de segurança: se após 30 segundos não houver resposta, forçar finalização
+      timeoutRef.current = setTimeout(() => {
+        console.error('[Login] ⚠️ TIMEOUT: Login demorou mais de 30 segundos');
+        toast.error('A requisição está demorando muito. Verifique sua conexão e tente novamente.');
+      }, 30000);
+    },
     onSuccess: (result) => {
+      // Limpar timeout se ainda estiver ativo
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      console.log('[Login] ✅ Login bem-sucedido!', { 
+        hasToken: !!result.token,
+        hasUser: !!result.user,
+        userId: result.user?.id 
+      });
+      
       try {
-        console.log('[Login] Login bem-sucedido, salvando dados...');
+        // Salvar dados no localStorage
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
-        console.log('[Login] Dados salvos, redirecionando...');
+        console.log('[Login] ✅ Dados salvos no localStorage');
+        
+        // Verificar se foi salvo corretamente
+        const savedToken = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
+        
+        if (!savedToken || !savedUser) {
+          throw new Error('Falha ao salvar dados no localStorage');
+        }
+        
+        console.log('[Login] ✅ Dados confirmados no localStorage');
         toast.success(t('login.loginSuccess'));
         
-        // Redirecionar imediatamente para onboarding primeiro (mais seguro)
-        // O onboarding vai verificar se já foi completado e redirecionar para dashboard se necessário
+        // Redirecionar após pequeno delay para garantir que tudo foi salvo
         setTimeout(() => {
+          console.log('[Login] 🔄 Redirecionando para /onboarding...');
           window.location.href = '/onboarding';
-        }, 500);
-      } catch (error) {
-        console.error('[Login] Erro ao salvar dados:', error);
-        toast.error('Erro ao fazer login. Tente novamente.');
+        }, 300);
+      } catch (error: any) {
+        console.error('[Login] ❌ Erro ao salvar dados:', error);
+        toast.error(error.message || 'Erro ao fazer login. Tente novamente.');
       }
     },
     onError: (error) => {
-      console.error('[Login] Erro na mutation:', error);
-      console.error('[Login] Detalhes do erro:', {
+      // Limpar timeout se ainda estiver ativo
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      console.error('[Login] ❌ Erro na mutation:', error);
+      console.error('[Login] Detalhes completos do erro:', {
         message: error.message,
+        code: error.data?.code,
+        httpStatus: error.data?.httpStatus,
         data: error.data,
         shape: error.shape,
       });
-      toast.error(error.message || t('login.loginError'));
+      
+      // Mensagem de erro mais amigável
+      let errorMessage = t('login.loginError');
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.data?.code === 'UNAUTHORIZED') {
+        errorMessage = 'Email ou senha incorretos';
+      } else if (error.data?.httpStatus === 500) {
+        errorMessage = 'Erro no servidor. Tente novamente em alguns instantes.';
+      } else if (error.message?.includes('Timeout')) {
+        errorMessage = 'A requisição demorou muito. Verifique sua conexão.';
+      }
+      
+      toast.error(errorMessage);
+    },
+    onSettled: () => {
+      // Limpar timeout se ainda estiver ativo
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      console.log('[Login] ⏹️ Mutation finalizada (sucesso ou erro)');
     },
   });
 
@@ -71,16 +135,34 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Login] 📝 Formulário submetido');
 
     if (!validateForm()) {
+      console.log('[Login] ⚠️ Validação falhou');
       return;
     }
 
-    loginMutation.mutate({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    console.log('[Login] ✅ Validação passou, enviando requisição...');
+    
+    try {
+      loginMutation.mutate({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+    } catch (error) {
+      console.error('[Login] ❌ Erro ao chamar mutation:', error);
+      toast.error('Erro inesperado. Tente novamente.');
+    }
   };
+
+  // Limpar timeout ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const isLoading = loginMutation.isPending;
 
@@ -180,6 +262,15 @@ export function Login() {
                 t('login.form.submit')
               )}
             </Button>
+            
+            {/* Mensagem de erro adicional (se houver) */}
+            {loginMutation.isError && (
+              <div className="mt-2 p-3 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {loginMutation.error?.message || 'Erro ao fazer login. Tente novamente.'}
+                </p>
+              </div>
+            )}
           </form>
 
           {/* Link para Signup */}

@@ -49,8 +49,13 @@ export function verifyToken(token: string): { userId: number; email: string } | 
  * Usa SQL direto para evitar problemas com colunas que podem não existir ainda
  */
 export async function getUserByEmail(email: string) {
+  console.log('[Auth] 🔍 getUserByEmail chamado:', email);
+  
   const db = await getDb();
-  if (!db) return null;
+  if (!db) {
+    console.error('[Auth] ❌ Database não disponível');
+    return null;
+  }
 
   try {
     // Tentar com todas as colunas (incluindo onboarding)
@@ -60,8 +65,11 @@ export async function getUserByEmail(email: string) {
       .where(eq(users.email, email))
       .limit(1);
 
-    return result[0] || null;
+    const user = result[0] || null;
+    console.log('[Auth] ✅ getUserByEmail resultado:', user ? { id: user.id, email: user.email } : 'null');
+    return user;
   } catch (error: any) {
+    console.warn('[Auth] ⚠️ Erro ao buscar usuário com Drizzle, tentando SQL direto:', error.message);
     // Se der erro por colunas não existentes, usar SQL direto
     if (error.message?.includes('onboarding') || error.code === 'ER_BAD_FIELD_ERROR') {
       const connection = await import('mysql2/promise');
@@ -246,33 +254,53 @@ export async function createUser(data: {
  * Login com email e senha
  */
 export async function loginUser(email: string, password: string) {
+  console.log('[Auth] 🔍 Buscando usuário por email:', email);
+  
   const user = await getUserByEmail(email);
   if (!user) {
+    console.log('[Auth] ❌ Usuário não encontrado:', email);
     throw new Error('Email ou senha incorretos');
   }
 
+  console.log('[Auth] ✅ Usuário encontrado:', { userId: user.id, email: user.email });
+
   if (!user.passwordHash) {
+    console.log('[Auth] ❌ Usuário não tem passwordHash');
     throw new Error('Conta criada com outro método de login');
   }
 
+  console.log('[Auth] 🔐 Verificando senha...');
   const isValid = await verifyPassword(password, user.passwordHash);
   if (!isValid) {
+    console.log('[Auth] ❌ Senha inválida');
     throw new Error('Email ou senha incorretos');
   }
+
+  console.log('[Auth] ✅ Senha válida');
 
   // Atualizar último login
   const db = await getDb();
   if (db) {
-    await db
-      .update(users)
-      .set({ lastSignedIn: new Date() })
-      .where(eq(users.id, user.id));
+    try {
+      await db
+        .update(users)
+        .set({ lastSignedIn: new Date() })
+        .where(eq(users.id, user.id));
+      console.log('[Auth] ✅ Último login atualizado');
+    } catch (error: any) {
+      console.error('[Auth] ⚠️ Erro ao atualizar lastSignedIn (não crítico):', error.message);
+      // Não falhar o login por causa disso
+    }
+  } else {
+    console.warn('[Auth] ⚠️ Database não disponível para atualizar lastSignedIn');
   }
 
   // Gerar token
+  console.log('[Auth] 🎫 Gerando token...');
   const token = generateToken(user.id, user.email || '');
+  console.log('[Auth] ✅ Token gerado');
 
-  return {
+  const result = {
     user: {
       id: user.id,
       email: user.email || null,
@@ -283,5 +311,8 @@ export async function loginUser(email: string, password: string) {
     },
     token,
   };
+  
+  console.log('[Auth] ✅ Login concluído:', { userId: result.user.id });
+  return result;
 }
 

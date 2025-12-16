@@ -49,10 +49,19 @@ export const authRouter = router({
       password: z.string(),
     }))
     .mutation(async ({ input }) => {
+      const startTime = Date.now();
+      console.log('[Auth] 🔐 Iniciando login:', { email: input.email });
+      
       try {
+        console.log('[Auth] 📞 Chamando loginUser...');
         const result = await loginUser(input.email, input.password);
+        console.log('[Auth] ✅ loginUser retornou com sucesso:', { 
+          userId: result.user.id,
+          hasToken: !!result.token 
+        });
+        
         // Garantir que todos os valores sejam serializáveis
-        return {
+        const response = {
           user: {
             id: result.user.id,
             email: result.user.email || null,
@@ -63,7 +72,24 @@ export const authRouter = router({
           },
           token: result.token,
         };
+        
+        const duration = Date.now() - startTime;
+        console.log('[Auth] ✅ Login concluído com sucesso:', {
+          userId: response.user.id,
+          duration: `${duration}ms`,
+        });
+        
+        return response;
       } catch (error: any) {
+        const duration = Date.now() - startTime;
+        console.error('[Auth] ❌ Erro no login:', {
+          error: error.message,
+          stack: error.stack,
+          duration: `${duration}ms`,
+          email: input.email,
+        });
+        
+        // Re-throw com mensagem clara
         throw new Error(error.message || 'Erro ao fazer login');
       }
     }),

@@ -123,3 +123,4 @@ brew services list | grep mysql
 
 **Execute:** `npm run dev:all` e acesse http://localhost:3000
 
+

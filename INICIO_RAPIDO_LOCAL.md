@@ -105,3 +105,4 @@ npm install
 
 Para mais detalhes, veja: `COMO_RODAR_LOCALMENTE.md`
 
+
