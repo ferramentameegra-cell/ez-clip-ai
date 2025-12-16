@@ -9,7 +9,7 @@ import { logger } from '../lib/logger';
 import { processLogin, LoginCredentials } from '../services/authService';
 
 const router = Router();
-const LOGIN_TIMEOUT_MS = 3000; // 3 segundos máximo
+const LOGIN_TIMEOUT_MS = 10000; // 10 segundos (tempo realista para conexões lentas)
 
 /**
  * Endpoint de login

@@ -4,7 +4,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { MyRetentionVideos } from '@/pages/MyRetentionVideos';
 import { JobsList } from '@/pages/JobsList';
 import { JobDetail } from '@/pages/JobDetail';
-import { LoginNew as Login } from '@/pages/LoginNew';
+import { Login } from '@/pages/Login';
 import { Signup } from '@/pages/Signup';
 import { Profile } from '@/pages/Profile';
 import { Settings } from '@/pages/Settings';

@@ -14,7 +14,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const FRONTEND_TIMEOUT = 10000; // 10 segundos
+const FRONTEND_TIMEOUT = 30000; // 30 segundos (tempo suficiente para conexões lentas)
 
 interface LoginResponse {
   success: boolean;
@@ -127,17 +127,7 @@ export function Login() {
       const duration = Date.now() - startTime;
       console.log(`[Login] Resposta recebida: ${response.status} (${duration}ms)`);
 
-      // Verificar cancelamento
-      if (controller.signal.aborted) {
-        return;
-      }
-
       const data: LoginResponse = await response.json();
-
-      // Verificar cancelamento novamente
-      if (controller.signal.aborted) {
-        return;
-      }
 
       if (!response.ok || !data.success || !data.data) {
         const errorMessage = data.error || 'Erro ao fazer login';
@@ -148,9 +138,6 @@ export function Login() {
       }
 
       // Sucesso - salvar dados
-      if (controller.signal.aborted) {
-        return;
-      }
 
       try {
         localStorage.setItem('token', data.data.token);
@@ -169,9 +156,7 @@ export function Login() {
 
       // Redirecionar
       setTimeout(() => {
-        if (!controller.signal.aborted) {
-          setLocation('/onboarding');
-        }
+        setLocation('/onboarding');
       }, 200);
 
     } catch (error: any) {

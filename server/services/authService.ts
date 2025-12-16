@@ -66,9 +66,10 @@ export async function findUserByEmail(email: string, requestId: string): Promise
   let connection: any = null;
   
   try {
+    // Timeout aumentado para conexões lentas
     const connectionPromise = getPoolConnection();
     const connectionTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout ao obter conexão (1s)')), 1000);
+      setTimeout(() => reject(new Error('Timeout ao obter conexão (5s)')), 5000);
     });
     
     connection = await Promise.race([connectionPromise, connectionTimeout]);
@@ -81,8 +82,9 @@ export async function findUserByEmail(email: string, requestId: string): Promise
       [email.toLowerCase()]
     );
     
+    // Timeout aumentado para queries lentas
     const queryTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout na query (1.5s)')), 1500);
+      setTimeout(() => reject(new Error('Timeout na query (3s)')), 3000);
     });
     
     const [rows] = await Promise.race([queryPromise, queryTimeout]);
@@ -110,7 +112,7 @@ export async function verifyPassword(password: string, hash: string, requestId: 
   try {
     const passwordPromise = bcrypt.compare(password, hash);
     const passwordTimeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout na verificação de senha (500ms)')), 500);
+      setTimeout(() => reject(new Error('Timeout na verificação de senha (2s)')), 2000);
     });
     
     return await Promise.race([passwordPromise, passwordTimeout]);
