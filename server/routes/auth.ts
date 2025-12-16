@@ -30,7 +30,13 @@ router.post('/login', async (req: Request, res: Response) => {
   const startTime = Date.now();
   const requestId = `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
-  logger.info(`[Auth] [${requestId}] ➡️ Requisição de login recebida`);
+  logger.info(`[Auth] [${requestId}] ➡️ Requisição de login recebida`, {
+    method: req.method,
+    url: req.url,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+    timestamp: new Date().toISOString(),
+  });
 
   // Criar timeout para garantir resposta em 3 segundos
   const timeoutId = setTimeout(() => {
@@ -81,6 +87,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     logger.info(`[Auth] [${requestId}] 🔍 Buscando usuário: ${emailLower}`);
+    logger.info(`[Auth] [${requestId}] 📊 Antes da query - Tempo decorrido: ${Date.now() - startTime}ms`);
 
     // 2. Buscar usuário no banco (com timeout)
     let connection: any = null;
@@ -89,6 +96,7 @@ router.post('/login', async (req: Request, res: Response) => {
     try {
       const dbStartTime = Date.now();
       logger.info(`[Auth] [${requestId}] 🔄 Obtendo conexão do pool...`);
+      logger.info(`[Auth] [${requestId}] 📊 Início da obtenção de conexão - Tempo total: ${dbStartTime - startTime}ms`);
       
       // Timeout de 1 segundo para obter conexão
       const connectionPromise = getPoolConnection();
@@ -121,6 +129,7 @@ router.post('/login', async (req: Request, res: Response) => {
       const [rows] = await Promise.race([queryPromise, queryTimeoutPromise]);
       const queryTime = Date.now() - queryStartTime;
       logger.info(`[Auth] [${requestId}] ✅ Query executada: ${queryTime}ms`);
+      logger.info(`[Auth] [${requestId}] 📊 Depois da query - Tempo total: ${Date.now() - startTime}ms`);
 
       user = (rows as any[])[0];
 
@@ -248,6 +257,13 @@ router.post('/login', async (req: Request, res: Response) => {
       userId: user.id,
       email: user.email,
     });
+    logger.info(`[Auth] [${requestId}] 📊 Antes de retornar resposta - Tempo total: ${duration}ms`);
+
+    // Garantir que resposta não foi enviada antes
+    if (res.headersSent) {
+      logger.error(`[Auth] [${requestId}] ⚠️ Resposta já foi enviada antes!`);
+      return;
+    }
 
     res.status(200).json({
       success: true,

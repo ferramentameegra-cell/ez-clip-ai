@@ -15,7 +15,7 @@ import { Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const LOGIN_TIMEOUT_MS = 5000; // 5 segundos (frontend dá mais tempo que backend)
+const LOGIN_TIMEOUT_MS = 10000; // 10 segundos (frontend dá margem para backend de 3s)
 
 interface LoginResponse {
   success: boolean;
@@ -52,15 +52,17 @@ export function LoginNew() {
   const abortControllerRef = useRef<AbortController | null>(null);
   // Ref para timeout
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Flag para evitar múltiplos submits
+  const isSubmittingRef = useRef<boolean>(false);
 
-  // Limpar recursos ao desmontar
+  // Limpar apenas timeout ao desmontar (NÃO cancelar requisição ativa)
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      // Limpar apenas timeout, não cancelar requisição
+      // A requisição deve completar mesmo se o componente for desmontado
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, []);
@@ -86,14 +88,30 @@ export function LoginNew() {
     e.preventDefault();
     console.log('[LoginNew] 📝 Formulário submetido');
 
+    // Prevenir múltiplos submits simultâneos
+    if (isSubmittingRef.current || isLoading) {
+      console.log('[LoginNew] ⚠️ Submit já em andamento, ignorando...');
+      return;
+    }
+
     if (!validateForm()) {
       console.log('[LoginNew] ⚠️ Validação falhou');
       return;
     }
 
-    // Cancelar requisição anterior se existir
-    if (abortControllerRef.current) {
+    // Marcar como submetendo
+    isSubmittingRef.current = true;
+
+    // Cancelar requisição anterior se existir (limpeza)
+    if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+      console.log('[LoginNew] 🧹 Cancelando requisição anterior...');
       abortControllerRef.current.abort();
+    }
+
+    // Limpar timeout anterior se existir
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     // Criar novo AbortController
@@ -103,18 +121,22 @@ export function LoginNew() {
     setIsLoading(true);
     const startTime = Date.now();
 
-    console.log('[LoginNew] 📤 Iniciando requisição de login...');
+    console.log('[LoginNew] 📤 Iniciando requisição de login...', {
+      email: email.trim().toLowerCase(),
+      timestamp: new Date().toISOString(),
+    });
 
-    // Timeout do frontend (5 segundos)
+    // Timeout do frontend (8 segundos - mais tempo que backend para dar margem)
     timeoutRef.current = setTimeout(() => {
       if (!controller.signal.aborted) {
-        controller.abort();
         const duration = Date.now() - startTime;
-        console.error(`[LoginNew] ❌ TIMEOUT após ${duration}ms`);
+        console.error(`[LoginNew] ❌ TIMEOUT do frontend após ${duration}ms`);
+        controller.abort();
         setIsLoading(false);
+        isSubmittingRef.current = false;
         toast.error('A requisição demorou muito. Verifique sua conexão e tente novamente.');
       }
-    }, LOGIN_TIMEOUT_MS);
+    }, 8000); // 8 segundos (backend tem 3s, então 8s é seguro)
 
     try {
       // Obter URL do backend
@@ -141,15 +163,40 @@ export function LoginNew() {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[LoginNew] 📥 Resposta recebida: ${response.status} (${duration}ms)`);
+      console.log(`[LoginNew] 📥 Resposta recebida: ${response.status} (${duration}ms)`, {
+        ok: response.ok,
+        statusText: response.statusText,
+      });
+
+      // Verificar se a requisição foi cancelada antes de ler o body
+      if (controller.signal.aborted) {
+        console.log('[LoginNew] ⚠️ Requisição foi cancelada antes de processar resposta');
+        return;
+      }
 
       const data: LoginResponse = await response.json();
+      console.log('[LoginNew] 📦 Dados recebidos:', {
+        success: data.success,
+        hasData: !!data.data,
+        hasError: !!data.error,
+        requestId: data.requestId,
+      });
+
+      // Verificar novamente se foi cancelada após ler o body
+      if (controller.signal.aborted) {
+        console.log('[LoginNew] ⚠️ Requisição foi cancelada após ler resposta');
+        return;
+      }
 
       if (!response.ok) {
         // Erro do servidor (400, 401, 500)
         const errorMessage = data.error || 'Erro ao fazer login';
-        console.error(`[LoginNew] ❌ Erro ${response.status}:`, errorMessage);
+        console.error(`[LoginNew] ❌ Erro ${response.status}:`, {
+          error: errorMessage,
+          requestId: data.requestId,
+        });
         setIsLoading(false);
+        isSubmittingRef.current = false;
         toast.error(errorMessage);
         return;
       }
@@ -157,6 +204,7 @@ export function LoginNew() {
       if (!data.success || !data.data) {
         console.error('[LoginNew] ❌ Resposta inválida:', data);
         setIsLoading(false);
+        isSubmittingRef.current = false;
         toast.error('Resposta inválida do servidor');
         return;
       }
@@ -168,6 +216,12 @@ export function LoginNew() {
         duration: `${duration}ms`,
       });
 
+      // Verificar novamente antes de salvar dados
+      if (controller.signal.aborted) {
+        console.log('[LoginNew] ⚠️ Requisição foi cancelada antes de salvar dados');
+        return;
+      }
+
       // Salvar dados
       try {
         localStorage.setItem('token', data.data.token);
@@ -177,17 +231,22 @@ export function LoginNew() {
         console.error('[LoginNew] ❌ Erro ao salvar no localStorage:', storageError);
         toast.error('Erro ao salvar dados. Tente novamente.');
         setIsLoading(false);
+        isSubmittingRef.current = false;
         return;
       }
 
       setIsLoading(false);
+      isSubmittingRef.current = false;
       toast.success(t('login.loginSuccess'));
 
-      // Redirecionar após pequeno delay
+      // Redirecionar após pequeno delay (garantir que dados foram salvos)
       setTimeout(() => {
         console.log('[LoginNew] 🔄 Redirecionando para /onboarding...');
-        setLocation('/onboarding');
-      }, 300);
+        // Não cancelar se já foi redirecionado
+        if (!controller.signal.aborted) {
+          setLocation('/onboarding');
+        }
+      }, 200);
 
     } catch (error: any) {
       // Limpar timeout
@@ -198,15 +257,38 @@ export function LoginNew() {
 
       const duration = Date.now() - startTime;
       setIsLoading(false);
+      isSubmittingRef.current = false;
 
-      if (error.name === 'AbortError') {
-        console.error(`[LoginNew] ❌ Requisição cancelada após ${duration}ms`);
-        toast.error('A requisição foi cancelada. Tente novamente.');
+      // Tratamento específico para AbortError (cancelamento)
+      if (error.name === 'AbortError' || error.message?.includes('aborted')) {
+        console.error(`[LoginNew] ❌ Requisição cancelada após ${duration}ms`, {
+          reason: 'AbortController.abort() foi chamado',
+          duration: `${duration}ms`,
+        });
+        
+        // Não mostrar toast se foi cancelado pelo timeout (já mostrou)
+        if (duration < LOGIN_TIMEOUT_MS) {
+          toast.error('A requisição foi cancelada. Tente novamente.');
+        }
         return;
       }
 
-      console.error('[LoginNew] ❌ Erro na requisição:', error);
-      toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
+      // Outros erros de rede
+      console.error('[LoginNew] ❌ Erro na requisição:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack?.substring(0, 300),
+        duration: `${duration}ms`,
+      });
+      
+      let errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+        errorMessage = 'Erro de conexão com o servidor. Verifique sua internet.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
