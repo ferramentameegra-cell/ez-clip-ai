@@ -29,11 +29,11 @@ export function Login() {
     onMutate: () => {
       console.log('[Login] Iniciando login...', { email: email.trim().toLowerCase() });
       
-      // Timeout de segurança: se após 30 segundos não houver resposta, forçar finalização
+      // Timeout de segurança: se após 60 segundos não houver resposta, forçar finalização
       timeoutRef.current = setTimeout(() => {
-        console.error('[Login] ⚠️ TIMEOUT: Login demorou mais de 30 segundos');
-        toast.error('A requisição está demorando muito. Verifique sua conexão e tente novamente.');
-      }, 30000);
+        console.error('[Login] ⚠️ TIMEOUT: Login demorou mais de 60 segundos');
+        toast.error('A requisição está demorando muito. Isso pode indicar problema de conexão com o banco de dados. Tente novamente em alguns instantes.');
+      }, 60000);
     },
     onSuccess: (result) => {
       // Limpar timeout se ainda estiver ativo

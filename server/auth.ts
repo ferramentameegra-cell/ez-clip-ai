@@ -46,87 +46,102 @@ export function verifyToken(token: string): { userId: number; email: string } | 
 
 /**
  * Busca usuário por email
- * Usa SQL direto para evitar problemas com colunas que podem não existir ainda
+ * Usa SQL direto para melhor performance e evitar problemas com colunas
  */
 export async function getUserByEmail(email: string) {
+  const startTime = Date.now();
   console.log('[Auth] 🔍 getUserByEmail chamado:', email);
   
-  const db = await getDb();
-  if (!db) {
-    console.error('[Auth] ❌ Database não disponível');
-    return null;
-  }
-
   try {
-    // Tentar com todas as colunas (incluindo onboarding)
-    const result = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    // Usar SQL direto desde o início para melhor performance
+    const connection = await import('mysql2/promise');
+    
+    const connectStartTime = Date.now();
+    const mysqlDb = await connection.default.createConnection({
+      uri: process.env.DATABASE_URL,
+      connectTimeout: 10000, // 10 segundos de timeout na conexão
+    });
+    const connectDuration = Date.now() - connectStartTime;
+    console.log('[Auth] ✅ Conexão MySQL estabelecida:', `${connectDuration}ms`);
 
-    const user = result[0] || null;
-    console.log('[Auth] ✅ getUserByEmail resultado:', user ? { id: user.id, email: user.email } : 'null');
-    return user;
-  } catch (error: any) {
-    console.warn('[Auth] ⚠️ Erro ao buscar usuário com Drizzle, tentando SQL direto:', error.message);
-    // Se der erro por colunas não existentes, usar SQL direto
-    if (error.message?.includes('onboarding') || error.code === 'ER_BAD_FIELD_ERROR') {
-      const connection = await import('mysql2/promise');
-      const mysqlDb = await connection.default.createConnection({
-        uri: process.env.DATABASE_URL,
-      });
+    const queryStartTime = Date.now();
+    const [rows] = await mysqlDb.execute(
+      `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
+       accepted_terms, accepted_terms_at, language, avatar_url, bio,
+       tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
+       youtube_access_token, youtube_refresh_token, tiktok_access_token, tiktok_refresh_token,
+       instagram_access_token, instagram_refresh_token,
+       created_at, updated_at, last_signed_in
+       FROM users WHERE email = ? LIMIT 1`,
+      [email]
+    );
+    const queryDuration = Date.now() - queryStartTime;
+    console.log('[Auth] ✅ Query executada:', `${queryDuration}ms`);
 
-      const [rows] = await mysqlDb.execute(
-        `SELECT id, open_id, name, email, password_hash, login_method, role, credits, 
-         accepted_terms, accepted_terms_at, language, avatar_url, bio,
-         tiktok_username, instagram_username, youtube_channel_id, youtube_shorts_enabled,
-         youtube_access_token, youtube_refresh_token, tiktok_access_token, tiktok_refresh_token,
-         instagram_access_token, instagram_refresh_token,
-         created_at, updated_at, last_signed_in
-         FROM users WHERE email = ?`,
-        [email]
-      );
+    await mysqlDb.end();
 
-      await mysqlDb.end();
-
-      const row = (rows as any[])[0];
-      if (!row) return null;
-
-      // Converter snake_case para camelCase
-      return {
-        id: row.id,
-        openId: row.open_id,
-        name: row.name,
-        email: row.email,
-        passwordHash: row.password_hash,
-        loginMethod: row.login_method,
-        role: row.role,
-        credits: row.credits,
-        acceptedTerms: row.accepted_terms,
-        acceptedTermsAt: row.accepted_terms_at,
-        language: row.language,
-        avatarUrl: row.avatar_url,
-        bio: row.bio,
-        tiktokUsername: row.tiktok_username,
-        instagramUsername: row.instagram_username,
-        youtubeChannelId: row.youtube_channel_id,
-        youtubeShortsEnabled: row.youtube_shorts_enabled,
-        youtubeAccessToken: row.youtube_access_token,
-        youtubeRefreshToken: row.youtube_refresh_token,
-        tiktokAccessToken: row.tiktok_access_token,
-        tiktokRefreshToken: row.tiktok_refresh_token,
-        instagramAccessToken: row.instagram_access_token,
-        instagramRefreshToken: row.instagram_refresh_token,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        lastSignedIn: row.last_signed_in,
-        onboardingUseCase: null,
-        onboardingNiche: null,
-        onboardingAt: null,
-      };
+    const row = (rows as any[])[0];
+    const totalDuration = Date.now() - startTime;
+    
+    if (!row) {
+      console.log('[Auth] ❌ Usuário não encontrado:', `${totalDuration}ms`);
+      return null;
     }
 
+    // Converter snake_case para camelCase
+    const user = {
+      id: row.id,
+      openId: row.open_id,
+      name: row.name,
+      email: row.email,
+      passwordHash: row.password_hash,
+      loginMethod: row.login_method,
+      role: row.role,
+      credits: row.credits,
+      acceptedTerms: row.accepted_terms,
+      acceptedTermsAt: row.accepted_terms_at,
+      language: row.language,
+      avatarUrl: row.avatar_url,
+      bio: row.bio,
+      tiktokUsername: row.tiktok_username,
+      instagramUsername: row.instagram_username,
+      youtubeChannelId: row.youtube_channel_id,
+      youtubeShortsEnabled: row.youtube_shorts_enabled,
+      youtubeAccessToken: row.youtube_access_token,
+      youtubeRefreshToken: row.youtube_refresh_token,
+      tiktokAccessToken: row.tiktok_access_token,
+      tiktokRefreshToken: row.tiktok_refresh_token,
+      instagramAccessToken: row.instagram_access_token,
+      instagramRefreshToken: row.instagram_refresh_token,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      lastSignedIn: row.last_signed_in,
+      onboardingUseCase: null,
+      onboardingNiche: null,
+      onboardingAt: null,
+    };
+    
+    console.log('[Auth] ✅ getUserByEmail resultado:', { 
+      userId: user.id, 
+      email: user.email,
+      duration: `${totalDuration}ms` 
+    });
+    
+    return user;
+  } catch (error: any) {
+    const totalDuration = Date.now() - startTime;
+    console.error('[Auth] ❌ Erro em getUserByEmail:', {
+      error: error.message,
+      code: error.code,
+      duration: `${totalDuration}ms`,
+    });
+    
+    // Se for erro de conexão, retornar null ao invés de throw
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+      console.error('[Auth] ❌ Erro de conexão com banco de dados');
+      return null;
+    }
+    
     throw error;
   }
 }

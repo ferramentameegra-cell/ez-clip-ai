@@ -56,7 +56,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               const controller = new AbortController();
               const timeoutId = setTimeout(() => {
                 controller.abort();
-              }, 30000); // 30 segundos de timeout
+              }, 60000); // 60 segundos de timeout (aumentado para dar tempo ao banco)
               
               const response = await fetch(url, {
                 ...options,
@@ -94,7 +94,7 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               });
               
               if (error.name === 'AbortError') {
-                throw new Error('Timeout: A requisição demorou mais de 30 segundos');
+                throw new Error('Timeout: A requisição demorou mais de 60 segundos. Isso pode indicar problema de conexão com o banco de dados.');
               }
               
               throw error;

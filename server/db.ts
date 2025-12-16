@@ -10,12 +10,27 @@ let dbInstance: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (dbInstance) return dbInstance;
 
-  const connection = await mysql.createConnection({
-    uri: process.env.DATABASE_URL,
-  });
+  try {
+    const startTime = Date.now();
+    console.log('[DB] 🔌 Criando conexão com banco de dados...');
+    
+    const connection = await mysql.createConnection({
+      uri: process.env.DATABASE_URL,
+      connectTimeout: 10000, // 10 segundos de timeout na conexão
+    });
+    
+    const duration = Date.now() - startTime;
+    console.log('[DB] ✅ Conexão estabelecida:', `${duration}ms`);
 
-  dbInstance = drizzle(connection, { schema, mode: 'default' });
-  return dbInstance;
+    dbInstance = drizzle(connection, { schema, mode: 'default' });
+    return dbInstance;
+  } catch (error: any) {
+    console.error('[DB] ❌ Erro ao conectar com banco de dados:', {
+      error: error.message,
+      code: error.code,
+    });
+    throw error;
+  }
 }
 
 // Re-export schema para facilitar imports
