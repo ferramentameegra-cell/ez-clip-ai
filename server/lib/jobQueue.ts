@@ -9,6 +9,7 @@ import { processVideoJob } from '../jobProcessor';
 import { logger } from './logger';
 
 // Conexão Redis para BullMQ (sem limite de retries)
+// lazyConnect: true para não bloquear startup
 const bullRedis = new Redis({
   host: process.env.REDIS_HOST || (process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost'),
   port: parseInt(process.env.REDIS_PORT || (process.env.REDIS_URL ? new URL(process.env.REDIS_URL).port || '6379' : '6379')),
@@ -21,7 +22,7 @@ const bullRedis = new Redis({
     const delay = Math.min(times * 50, 2000);
     return delay;
   },
-  lazyConnect: false,
+  lazyConnect: true, // ← NÃO CONECTA IMEDIATAMENTE (evita bloqueio no startup)
 });
 
 // Conexão Redis alternativa (para ytdl-core se necessário)
@@ -33,6 +34,7 @@ export const ytdlRedis = new Redis({
   enableReadyCheck: false,
   enableOfflineQueue: true,
   keepAlive: 30000,
+  lazyConnect: true, // ← NÃO CONECTA IMEDIATAMENTE (evita bloqueio no startup)
 });
 
 // Event handlers para debug
