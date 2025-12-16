@@ -1,5 +1,4 @@
 import { Route, Switch, Router, useLocation } from 'wouter';
-import { Home } from '@/pages/Home';
 import { Dashboard } from '@/pages/Dashboard';
 import { MyRetentionVideos } from '@/pages/MyRetentionVideos';
 import { JobsList } from '@/pages/JobsList';

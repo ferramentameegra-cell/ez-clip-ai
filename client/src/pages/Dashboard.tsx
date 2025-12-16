@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation } from 'wouter';
+import { Link } from 'wouter';
 import { 
   Sparkles, Youtube, Clock, CheckCircle, Type, 
   ArrowRight, Loader2, Video, Film, TrendingUp, BarChart3, 
@@ -36,7 +36,6 @@ const PACKAGE_PRESETS: Record<PackageSize, { duration: number; label: string; de
 export function Dashboard() {
   const { t } = useTranslation();
   const { isDark } = useTheme();
-  const [, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [packageSize, setPackageSize] = useState<PackageSize | ''>('');
