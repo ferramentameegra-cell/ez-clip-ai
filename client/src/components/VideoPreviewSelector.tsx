@@ -65,7 +65,9 @@ export function VideoPreviewSelector({ youtubeUrl, onTimeRangeChange, disabled }
         });
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Erro ao buscar informações do vídeo' }));
+          // Clonar response antes de ler para não consumir o stream
+          const clonedResponse = response.clone();
+          const errorData = await clonedResponse.json().catch(() => ({ error: 'Erro ao buscar informações do vídeo' }));
           throw new Error(errorData.error || `Erro ao buscar informações do vídeo (${response.status})`);
         }
         

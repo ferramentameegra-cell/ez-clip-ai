@@ -75,7 +75,9 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
               
               // Verificar se a resposta é válida
               if (!response.ok) {
-                const text = await response.text();
+                // Clonar a response antes de ler o body para não consumir o stream
+                const clonedResponse = response.clone();
+                const text = await clonedResponse.text();
                 console.error('[tRPC] ❌ Erro na resposta:', {
                   status: response.status,
                   statusText: response.statusText,
