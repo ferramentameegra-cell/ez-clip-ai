@@ -128,7 +128,8 @@ app.use('/trpc', async (req, res) => {
     logger.info(`[tRPC] 📥 ${req.method} ${pathname}`);
     
     // Processar com tRPC
-    const response = await fetchRequestHandler({
+    // CRÍTICO: Timeout global de 35 segundos para evitar requisições pendentes
+    const handlerPromise = fetchRequestHandler({
       endpoint: '/trpc',
       req: fetchRequest,
       router: appRouter,
@@ -142,6 +143,7 @@ app.use('/trpc', async (req, res) => {
           code: error.code,
           httpStatus,
         });
+        console.error(`[tRPC] ❌ Erro em ${path}:`, error.message);
         
         if (error.message?.includes('timeout') || 
             error.message?.includes('ECONNREFUSED') ||
@@ -151,8 +153,24 @@ app.use('/trpc', async (req, res) => {
       },
     });
     
+    // Timeout global para toda a requisição tRPC
+    const timeoutPromise = new Promise<Response>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Timeout: Requisição tRPC excedeu 35 segundos'));
+      }, 35000);
+    });
+    
+    const response = await Promise.race([handlerPromise, timeoutPromise]);
+    
     const duration = Date.now() - requestStartTime;
     logger.info(`[tRPC] 📤 ${response.status} (${duration}ms)`);
+    console.log(`[tRPC] ✅ Resposta recebida: ${response.status} (${duration}ms)`);
+    
+    // CRÍTICO: Verificar se resposta já foi enviada
+    if (res.headersSent) {
+      console.warn('[tRPC] ⚠️ Resposta já foi enviada anteriormente');
+      return;
+    }
     
     // Copiar status e headers
     res.status(response.status);
@@ -166,17 +184,40 @@ app.use('/trpc', async (req, res) => {
     // Fazer streaming do body de forma segura
     if (response.body) {
       const nodeStream = Readable.fromWeb(response.body as any);
+      nodeStream.on('error', (err) => {
+        console.error('[tRPC] ❌ Erro no stream:', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Erro ao processar resposta' });
+        }
+      });
       nodeStream.pipe(res);
     } else {
       res.end();
     }
+    
+    console.log(`[tRPC] ✅ Resposta HTTP enviada com sucesso`);
   } catch (error: any) {
     const duration = Date.now() - requestStartTime;
     logger.error(`[tRPC] ❌ Erro fatal após ${duration}ms:`, error);
-    res.status(500).json({ 
-      error: 'Erro interno do servidor',
-      message: error.message 
+    console.error(`[tRPC] ❌ Erro fatal:`, {
+      error: error.message,
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString(),
     });
+    
+    // CRÍTICO: Sempre retornar resposta HTTP, mesmo em erro
+    if (!res.headersSent) {
+      const httpStatus = (error as any).httpStatus || 500;
+      res.status(httpStatus).json({ 
+        error: {
+          message: error.message || 'Erro interno do servidor',
+          code: error.code || 'INTERNAL_SERVER_ERROR',
+        }
+      });
+      console.log(`[tRPC] ✅ Resposta de erro HTTP enviada: ${httpStatus}`);
+    } else {
+      console.warn('[tRPC] ⚠️ Resposta já foi enviada, não é possível enviar erro');
+    }
   }
 });
 
